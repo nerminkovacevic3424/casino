@@ -1,21 +1,24 @@
-/**
- * This is not a production server yet!
- * This is only a minimal backend to get started.
- */
-
-import { Logger } from '@nestjs/common';
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app/app.module';
+import { setupApp } from './app/setup-app';
+import { loadConfig } from './config/env';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const globalPrefix = 'api';
-  app.setGlobalPrefix(globalPrefix);
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  Logger.log(
-    `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`,
+async function bootstrap(): Promise<void> {
+  const config = loadConfig();
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule.forRoot(config),
+    { bufferLogs: true },
   );
+  setupApp(app, config);
+  await app.listen(config.PORT);
+  app.get(Logger).log(`API listening on port ${config.PORT}`);
 }
 
-bootstrap();
+bootstrap().catch((err: unknown) => {
+  // The logger may not exist yet (e.g. invalid configuration), so fall back to stderr.
+  console.error(err);
+  process.exit(1);
+});

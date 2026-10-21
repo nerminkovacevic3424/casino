@@ -1,0 +1,115 @@
+// Money is always BIGINT minor units (100 = 1.00 credit). Never floats.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  PLAYER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  /// Stored lower-cased and trimmed.
+  email            String     @unique
+  passwordHash     String     @map("password_hash")
+  displayName      String     @map("display_name")
+  dateOfBirth      DateTime   @map("date_of_birth") @db.Date
+  role             Role       @default(PLAYER)
+  status           UserStatus @default(ACTIVE)
+  emailVerifiedAt  DateTime?  @map("email_verified_at")
+  /// AES-256-GCM encrypted base32 secret (iv.tag.ciphertext, base64url).
+  totpSecret       String?    @map("totp_secret")
+  totpEnabledAt    DateTime?  @map("totp_enabled_at")
+  /// Last accepted TOTP time step; codes at or before it are rejected (replay protection).
+  totpLastTimeStep Int?       @map("totp_last_time_step")
+  failedLogins     Int        @default(0) @map("failed_logins")
+  lockedUntil      DateTime?  @map("locked_until")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  wallet      Wallet?
+  emailTokens EmailToken[]
+  ledger      LedgerEntry[]
+
+  @@map("users")
+}
+
+model Wallet {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @unique @map("user_id") @db.Uuid
+  /// CHECK (balance >= 0) is added in the migration.
+  balance          BigInt    @default(0)
+  lastDailyBonusAt DateTime? @map("last_daily_bonus_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  ledger LedgerEntry[]
+
+  @@map("wallets")
+}
+
+enum LedgerType {
+  SIGNUP_BONUS
+  DAILY_BONUS
+  BET
+  WIN
+  REFUND
+  ADJUSTMENT
+}
+
+/// Append-only: a trigger in the migration rejects UPDATE and DELETE.
+model LedgerEntry {
+  id           BigInt     @id @default(autoincrement())
+  walletId     String     @map("wallet_id") @db.Uuid
+  userId       String     @map("user_id") @db.Uuid
+  type         LedgerType
+  /// Signed: negative for debits, positive for credits.
+  amount       BigInt
+  balanceAfter BigInt     @map("balance_after")
+  /// Game round this entry belongs to (bets, wins, refunds).
+  roundId      String?    @map("round_id") @db.Uuid
+  description  String?
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([roundId])
+  @@map("ledger_entries")
+}
+
+enum EmailTokenPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+model EmailToken {
+  id        String            @id @default(uuid()) @db.Uuid
+  userId    String            @map("user_id") @db.Uuid
+  purpose   EmailTokenPurpose
+  /// SHA-256 of the token sent by email; the raw token is never stored.
+  tokenHash String            @unique @map("token_hash")
+  expiresAt DateTime          @map("expires_at")
+  usedAt    DateTime?         @map("used_at")
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("email_tokens")
+}

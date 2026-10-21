@@ -63,6 +63,57 @@
     "test": {
       "options": {
         "passWithNoTests": true
+      },
+      "dependsOn": ["prisma-generate"]
+    },
+    "prisma-generate": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["{projectRoot}/prisma/schema.prisma"],
+      "outputs": ["{projectRoot}/src/generated"],
+      "options": {
+        "command": "prisma --config apps/api/prisma.config.ts generate"
+      }
+    },
+    "migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma --config apps/api/prisma.config.ts migrate deploy"
+      },
+      "metadata": {
+        "description": "Apply pending migrations (DATABASE_URL)"
+      }
+    },
+    "migrate-dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma --config apps/api/prisma.config.ts migrate dev",
+        "forwardAllArgs": true
+      }
+    },
+    "seed": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma --config apps/api/prisma.config.ts db seed"
+      }
+    },
+    "build": {
+      "dependsOn": ["^build", "prisma-generate"]
+    },
+    "lint": {
+      "dependsOn": ["prisma-generate"]
+    },
+    "typecheck": {
+      "dependsOn": ["prisma-generate"]
+    },
+    "integration": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["prisma-generate"],
+      "options": {
+        "command": "jest -c apps/api/jest.integration.config.cts --runInBand"
+      },
+      "metadata": {
+        "description": "Integration tests against Postgres + Redis via Testcontainers (needs Docker)"
       }
     }
   }

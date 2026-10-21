@@ -54,3 +54,8 @@ vitest.config.*.timestamp*
 .nx/polygraph
 .nx/self-healing
 .nx/migrate-runs
+# env & generated
+.env
+.env.*
+!.env.example
+apps/api/src/generated/
