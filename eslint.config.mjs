@@ -33,12 +33,14 @@ export default [
               onlyDependOnLibsWithTags: ['scope:api', 'scope:shared'],
             },
             {
+              // The engine is pure and framework-agnostic: it depends on nothing.
               sourceTag: 'type:engine',
-              onlyDependOnLibsWithTags: ['type:types'],
+              onlyDependOnLibsWithTags: [],
             },
             {
+              // API contracts may reference engine result types.
               sourceTag: 'type:types',
-              onlyDependOnLibsWithTags: [],
+              onlyDependOnLibsWithTags: ['type:engine'],
             },
           ],
         },

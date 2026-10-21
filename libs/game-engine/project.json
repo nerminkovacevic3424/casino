@@ -14,6 +14,26 @@
         "tsConfig": "libs/game-engine/tsconfig.lib.json",
         "assets": ["libs/game-engine/*.md"]
       }
+    },
+    "simulate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx libs/game-engine/scripts/simulate-rtp.ts --spins 10000000",
+        "forwardAllArgs": true
+      }
+    },
+    "rtp-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "parallel": false,
+        "commands": [
+          "tsx libs/game-engine/scripts/simulate-rtp.ts --check --game classic-3-reel,video-5-reel --spins 10000000",
+          "tsx libs/game-engine/scripts/simulate-rtp.ts --check --game megaways --spins 30000000"
+        ]
+      },
+      "metadata": {
+        "description": "Fails if any slot RTP drifts more than ±0.5% from its documented target"
+      }
     }
   }
 }
