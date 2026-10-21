@@ -2,6 +2,7 @@ import { Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthUser, CurrentUser } from '../common/auth-decorators';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import {
   TransactionPageDto,
   TransactionQueryDto,
@@ -18,7 +19,10 @@ import type { Paginated } from '@casino/shared-types';
 @ApiCookieAuth('access_token')
 @Controller('wallet')
 export class WalletController {
-  constructor(private readonly wallet: WalletService) {}
+  constructor(
+    private readonly wallet: WalletService,
+    private readonly realtime: RealtimeGateway,
+  ) {}
 
   @Get()
   @ApiOkResponse({ type: WalletSummaryDto })
@@ -30,8 +34,10 @@ export class WalletController {
   @HttpCode(200)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOkResponse({ type: WalletSummaryDto })
-  claimDailyBonus(@CurrentUser() user: AuthUser): Promise<WalletSummary> {
-    return this.wallet.claimDailyBonus(user.id);
+  async claimDailyBonus(@CurrentUser() user: AuthUser): Promise<WalletSummary> {
+    const summary = await this.wallet.claimDailyBonus(user.id);
+    this.realtime.emitBalance(user.id, summary.balance);
+    return summary;
   }
 
   @Get('transactions')

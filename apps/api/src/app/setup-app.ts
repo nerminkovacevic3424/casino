@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { HttpExceptionFilter } from '../common/http-exception.filter';
 import { AppConfig } from '../config/env';
+import { RedisIoAdapter } from '../realtime/redis-io.adapter';
 
 export const GLOBAL_PREFIX = 'api';
 export const DOCS_PATH = `${GLOBAL_PREFIX}/docs`;
@@ -71,6 +72,7 @@ export function setupApp(app: NestExpressApplication, config: AppConfig): void {
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useWebSocketAdapter(new RedisIoAdapter(app, config));
   app.enableShutdownHooks();
 
   SwaggerModule.setup(DOCS_PATH, app, () => createOpenApiDocument(app), {

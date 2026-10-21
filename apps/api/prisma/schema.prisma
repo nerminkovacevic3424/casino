@@ -43,6 +43,8 @@ model User {
   wallet      Wallet?
   emailTokens EmailToken[]
   ledger      LedgerEntry[]
+  seedPairs   SeedPair[]
+  rounds      GameRound[]
 
   @@map("users")
 }
@@ -85,8 +87,9 @@ model LedgerEntry {
   description  String?
   createdAt    DateTime   @default(now()) @map("created_at")
 
-  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Restrict)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  wallet Wallet     @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  round  GameRound? @relation(fields: [roundId], references: [id], onDelete: Restrict)
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([roundId])
@@ -112,4 +115,73 @@ model EmailToken {
 
   @@index([userId, purpose])
   @@map("email_tokens")
+}
+
+/// Provably fair seed pair. The server seed stays secret (only its SHA-256 is
+/// shown) until the pair is rotated, then it is revealed for verification.
+model SeedPair {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  /// 32 random bytes as hex, from the CSPRNG.
+  serverSeed     String    @map("server_seed")
+  serverSeedHash String    @map("server_seed_hash")
+  clientSeed     String    @map("client_seed")
+  /// Next nonce to use; incremented under a row lock for every round.
+  nextNonce      Int       @default(0) @map("next_nonce")
+  /// Exactly one active pair per user (partial unique index in the migration).
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  revealedAt     DateTime? @map("revealed_at")
+
+  user   User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  rounds GameRound[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("seed_pairs")
+}
+
+enum RoundStatus {
+  OPEN
+  SETTLED
+}
+
+/// One paid game round. Inputs + seeds fully determine the outcome.
+model GameRound {
+  id             String      @id @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  gameId         String      @map("game_id")
+  seedPairId     String      @map("seed_pair_id") @db.Uuid
+  nonce          Int
+  status         RoundStatus
+  /// Total staked (base bet plus doubles/splits/insurance), minor units.
+  stake          BigInt
+  payout         BigInt      @default(0)
+  /// The player's choices (bet sizes, actions, holds) — replayable with the seeds.
+  input          Json
+  /// Client-safe outcome shown in history and on the verify page.
+  result         Json?
+  /// Server-only state for multi-step games (e.g. the blackjack shoe). Never sent to clients.
+  state          Json?
+  idempotencyKey String      @map("idempotency_key")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  settledAt      DateTime?   @map("settled_at")
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  seedPair SeedPair      @relation(fields: [seedPairId], references: [id], onDelete: Restrict)
+  ledger   LedgerEntry[]
+
+  @@unique([userId, idempotencyKey])
+  @@unique([seedPairId, nonce])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([gameId, createdAt])
+  @@map("game_rounds")
+}
+
+/// Per-game switches managed from the admin panel.
+model GameSetting {
+  gameId    String   @id @map("game_id")
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("game_settings")
 }

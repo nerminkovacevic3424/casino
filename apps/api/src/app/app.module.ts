@@ -16,9 +16,11 @@ import { CsrfMiddleware } from '../common/csrf';
 import { RedisThrottlerStorage } from '../common/redis-throttler.storage';
 import { ConfigModule } from '../config/config.module';
 import { AppConfig, loadConfig } from '../config/env';
+import { GamesModule } from '../games/games.module';
 import { HealthController } from '../health/health.controller';
 import { MailModule } from '../mail/mail.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { REDIS, RedisModule } from '../redis/redis.module';
 import { WalletModule } from '../wallet/wallet.module';
 
@@ -76,6 +78,8 @@ export class AppModule implements NestModule {
         }),
         AuthModule,
         WalletModule,
+        RealtimeModule,
+        GamesModule,
       ],
       controllers: [HealthController],
       providers: [
