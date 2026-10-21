@@ -440,13 +440,20 @@ describe('auth (integration)', () => {
           code: totpCode(secret, now + 60),
         })
         .expect(401);
-      const disabled = await second
-        .post('/api/auth/2fa/disable', {
-          password: body.password,
-          code: totpCode(secret, now + 60),
-        })
-        .expect(200);
-      expect(disabled.body.twoFactorEnabled).toBe(false);
+      // Steps now and now+30 are spent; move the server clock to the next window.
+      const realNow = Date.now();
+      const clock = jest.spyOn(Date, 'now').mockReturnValue(realNow + 60_000);
+      try {
+        const disabled = await second
+          .post('/api/auth/2fa/disable', {
+            password: body.password,
+            code: totpCode(secret, now + 60),
+          })
+          .expect(200);
+        expect(disabled.body.twoFactorEnabled).toBe(false);
+      } finally {
+        clock.mockRestore();
+      }
     });
 
     it('rejects forged MFA tokens', async () => {

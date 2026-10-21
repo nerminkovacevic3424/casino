@@ -65,10 +65,11 @@ describe('wallet (integration)', () => {
     it('pays exactly once under concurrent claims (row lock)', async () => {
       const { client, userId } = await newPlayer(true);
       const results = await Promise.all(
-        Array.from({ length: 8 }, () => client.post('/api/wallet/daily-bonus')),
+        // Five concurrent claims (the endpoint allows 5/min): exactly one may pay.
+        Array.from({ length: 5 }, () => client.post('/api/wallet/daily-bonus')),
       );
       expect(results.filter((r) => r.status === 200)).toHaveLength(1);
-      expect(results.filter((r) => r.status === 403)).toHaveLength(7);
+      expect(results.filter((r) => r.status === 403)).toHaveLength(4);
       const bonuses = await t.prisma.ledgerEntry.count({
         where: { userId, type: 'DAILY_BONUS' },
       });
