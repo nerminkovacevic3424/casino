@@ -1,0 +1,19 @@
+{
+  "name": "game-engine",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/game-engine/src",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:engine"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/game-engine",
+        "main": "libs/game-engine/src/index.ts",
+        "tsConfig": "libs/game-engine/tsconfig.lib.json",
+        "assets": ["libs/game-engine/*.md"]
+      }
+    }
+  }
+}

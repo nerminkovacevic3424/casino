@@ -14,16 +14,9 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "paths": {
-      "@org/api/products": ["./packages/api/products/src/index.ts"],
-      "@org/models": ["./packages/shared/models/src/index.ts"],
-      "@org/shop/data": ["./packages/shop/data/src/index.ts"],
-      "@org/shop/feature-product-detail": [
-        "./packages/shop/feature-product-detail/src/index.ts"
-      ],
-      "@org/shop/feature-products": [
-        "./packages/shop/feature-products/src/index.ts"
-      ],
-      "@org/shop/shared-ui": ["./packages/shop/shared-ui/src/index.ts"]
+      "@casino/game-engine": ["./libs/game-engine/src/index.ts"],
+      "@casino/shared-types": ["./libs/shared-types/src/index.ts"],
+      "@casino/ui": ["./libs/ui/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
