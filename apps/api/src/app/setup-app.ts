@@ -8,6 +8,7 @@ import { Logger } from 'nestjs-pino';
 import { HttpExceptionFilter } from '../common/http-exception.filter';
 import { AppConfig } from '../config/env';
 import { RedisIoAdapter } from '../realtime/redis-io.adapter';
+import { serveWeb } from './serve-web';
 
 export const GLOBAL_PREFIX = 'api';
 export const DOCS_PATH = `${GLOBAL_PREFIX}/docs`;
@@ -17,8 +18,11 @@ export function setupApp(app: NestExpressApplication, config: AppConfig): void {
   app.useLogger(app.get(Logger));
   app.flushLogs();
   app.disable('x-powered-by');
-  // Behind exactly one reverse proxy (nginx / load balancer) in docker and production.
-  app.set('trust proxy', config.NODE_ENV === 'development' ? false : 1);
+  // Behind a reverse proxy (nginx / platform load balancer) in docker and production.
+  app.set(
+    'trust proxy',
+    config.NODE_ENV === 'development' ? false : config.TRUST_PROXY_HOPS,
+  );
   app.setGlobalPrefix(GLOBAL_PREFIX);
 
   // The API only serves JSON: lock everything down, except the Swagger UI assets.
@@ -39,11 +43,14 @@ export function setupApp(app: NestExpressApplication, config: AppConfig): void {
       },
     },
   });
-  app.use((req: Request, res: Response, next: NextFunction) =>
-    req.path.startsWith(`/${DOCS_PATH}`)
-      ? docs(req, res, next)
-      : strict(req, res, next),
-  );
+  const servesWeb = Boolean(config.WEB_DIST_DIR);
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith(`/${DOCS_PATH}`)) return docs(req, res, next);
+    // The web app's pages get their own policy in serveWeb().
+    if (servesWeb && !req.path.startsWith(`/${GLOBAL_PREFIX}`)) return next();
+    return strict(req, res, next);
+  });
+  if (config.WEB_DIST_DIR) serveWeb(app, config.WEB_DIST_DIR);
 
   app.use(cookieParser());
   const origins = new Set([

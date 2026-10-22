@@ -57,6 +57,11 @@ export const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
 
+  /** Built Angular app to serve from the same origin (production single-service deploys). */
+  WEB_DIST_DIR: z.string().min(1).optional(),
+  /** Reverse-proxy hops in front of the API (X-Forwarded-For entries to trust). */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
+
   SIGNUP_BONUS: minor.default(100_000),
   DAILY_BONUS: minor.default(10_000),
 });

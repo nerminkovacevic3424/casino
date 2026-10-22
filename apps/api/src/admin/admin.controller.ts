@@ -10,7 +10,9 @@ import {
   Post,
   Put,
   Query,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import {
   isGameId,
@@ -90,6 +92,12 @@ export class AdminController {
   @Get('ledger')
   ledger(@Query() query: LedgerQueryDto): Promise<CursorPage<AdminLedgerRow>> {
     return this.admin.ledger(query);
+  }
+
+  /** Deployment check: the IP the API attributes to you (rate limits use it). */
+  @Get('client-ip')
+  clientIp(@Req() req: Request): { ip: string | undefined; chain: string[] } {
+    return { ip: req.ip, chain: req.ips };
   }
 
   @Get('audit')

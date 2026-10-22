@@ -1,5 +1,7 @@
 import type { Cascade, Grid, WaysSlotConfig } from '@casino/game-engine';
 import { Application, Container, Graphics, Sprite, Text } from 'pixi.js';
+// Pixi compiles shaders with new Function() unless this is loaded; needed under the site's CSP.
+import 'pixi.js/unsafe-eval';
 import { SymbolAtlas } from './symbol-atlas';
 import { Tweener, easeInQuad, easeOutBounce, easeOutCubic } from './tweens';
 

@@ -1,5 +1,7 @@
 import { WHEEL_ORDER, pocketColor } from '@casino/game-engine';
 import { Application, Container, Graphics, Text, Ticker } from 'pixi.js';
+// Pixi compiles shaders with new Function() unless this is loaded; needed under the site's CSP.
+import 'pixi.js/unsafe-eval';
 
 const POCKET = (2 * Math.PI) / WHEEL_ORDER.length;
 const COLOURS = { red: 0xc8273a, black: 0x15171f, green: 0x0e8a5a } as const;

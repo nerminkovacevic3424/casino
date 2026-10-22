@@ -1,0 +1,18 @@
+**/node_modules
+dist
+tmp
+coverage
+.nx
+.angular
+.git
+.github
+.claude
+.vscode
+.idea
+**/*.log
+# Never bake secrets into the image; the host injects them.
+.env
+.env.*
+!.env.example
+apps/api/src/generated
+apps/web-e2e

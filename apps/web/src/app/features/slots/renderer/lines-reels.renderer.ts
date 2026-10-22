@@ -5,6 +5,8 @@ import type {
   ScatterWin,
 } from '@casino/game-engine';
 import { Application, Container, Graphics, Sprite, Ticker } from 'pixi.js';
+// Pixi compiles shaders with new Function() unless this is loaded; needed under the site's CSP.
+import 'pixi.js/unsafe-eval';
 import { ReelModel } from './reel-model';
 import { SymbolAtlas } from './symbol-atlas';
 
