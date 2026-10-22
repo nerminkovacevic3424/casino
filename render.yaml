@@ -1,5 +1,5 @@
 # Render Blueprint: one free Docker web service serving the API and the web app.
-# Postgres (Neon), Redis (Upstash) and email (Mailjet) are external free services;
+# Postgres (Neon), Redis (Upstash) and email (Gmail API) are external free services;
 # their connection details are asked for when the Blueprint is first applied.
 # Step-by-step guide: DEPLOY.md
 services:

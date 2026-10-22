@@ -3,13 +3,13 @@
 The whole app (website + API + live updates) runs as **one Render web service**.
 The data lives in free managed services:
 
-| What     | Service                                           | Free plan (check current limits when signing up)                         |
-| -------- | ------------------------------------------------- | ------------------------------------------------------------------------ |
-| App      | [Render](https://render.com) web service (Docker) | Sleeps after 15 min without visitors; wakes on the next visit (~30–60 s) |
-| Database | [Neon](https://neon.tech) Postgres                | 0.5 GB storage                                                           |
-| Redis    | [Upstash](https://upstash.com)                    | Monthly command quota                                                    |
-| Email    | [Mailjet](https://www.mailjet.com) (HTTPS API)    | 200 emails/day, 6,000/month                                              |
-| Code     | [GitHub](https://github.com) private repository   | Free                                                                     |
+| What     | Service                                                                     | Free plan (check current limits when signing up)                         |
+| -------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| App      | [Render](https://render.com) web service (Docker)                           | Sleeps after 15 min without visitors; wakes on the next visit (~30–60 s) |
+| Database | [Neon](https://neon.tech) Postgres                                          | 0.5 GB storage                                                           |
+| Redis    | [Upstash](https://upstash.com)                                              | Monthly command quota                                                    |
+| Email    | Your own Gmail via the [Gmail API](https://developers.google.com/gmail/api) | About 500 emails/day                                                     |
+| Code     | [GitHub](https://github.com) private repository                             | Free                                                                     |
 
 Allow about 30–45 minutes the first time. No credit card is needed for any of them.
 
@@ -41,17 +41,24 @@ Allow about 30–45 minutes the first time. No credit card is needed for any of 
    `rediss://default:PASSWORD@xxx.upstash.io:6379`
 3. Keep it for step 5 (`REDIS_URL`).
 
-## 4. Email: Mailjet
+## 4. Email: your Gmail (Gmail API)
 
-Render's free plan blocks outgoing SMTP, so the app sends email through Mailjet's HTTPS API instead.
+Render's free plan blocks outgoing SMTP, so the app sends through the Gmail API over HTTPS, as your own Gmail address. Mail leaves Google's servers, so Gmail's spam checks (DMARC) pass.
 
-1. Sign up at mailjet.com (free plan).
-2. **Account settings → Senders & domains → Add a sender address**: use an email address you own (e.g. your Gmail) and confirm it from the email Mailjet sends.
-3. **Account settings → API key management**: copy the **API key** and the **Secret key**.
-4. Keep for step 5: `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`, and
-   `MAIL_FROM` = `Casino <the-address-you-verified@gmail.com>`.
+1. Go to [console.cloud.google.com](https://console.cloud.google.com), create a project, then **APIs & Services → Library** → enable **Gmail API**.
+2. **OAuth consent screen**: choose _External_, fill in an app name and your email, add your Gmail as a test user, save. Then click **Publish app**.
+   In _Testing_ mode Google expires the connection every 7 days and emails stop; published apps keep working.
+3. **Credentials → Create credentials → OAuth client ID**, type **Web application**. Under _Authorized redirect URIs_ add
+   `https://developers.google.com/oauthplayground`. Copy the **Client ID** and **Client secret**.
+4. Open [developers.google.com/oauthplayground](https://developers.google.com/oauthplayground):
+   1. Gear icon (top right) → tick **Use your own OAuth credentials** → paste the client ID and secret.
+   2. In the left box type `https://mail.google.com/` → **Authorize APIs** → sign in with your Gmail.
+      Google warns the app is unverified (it is your own app): **Advanced → Go to … (unsafe)** → allow.
+   3. **Exchange authorization code for tokens** → copy the **Refresh token**.
+5. Keep for step 5: `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, and
+   `MAIL_FROM` = `Casino <your.address@gmail.com>` (the same Gmail you signed in with).
 
-Mailjet may review a new account before it sends; if verification emails don't arrive, check the Mailjet dashboard for a notice. Emails sent "from" a Gmail address via another service can land in spam; ask players to check there.
+Treat the refresh token like a password: it can send mail as you. To cut access later, remove the app at [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
 
 ## 5. The app: Render
 
@@ -64,15 +71,15 @@ Mailjet may review a new account before it sends; if verification emails don't a
 2. Sign up at render.com with your GitHub account.
 3. **New → Blueprint**, pick your `casino` repository. Render reads `render.yaml` and asks for the values below:
 
-   | Variable                                             | Value                                                           |
-   | ---------------------------------------------------- | --------------------------------------------------------------- |
-   | `APP_URL`                                            | Put `https://casino.onrender.com` for now; you fix it in step 6 |
-   | `DATABASE_URL`                                       | Neon string from step 2                                         |
-   | `REDIS_URL`                                          | Upstash `rediss://…` string from step 3                         |
-   | `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`, `MAIL_FROM` | From step 4                                                     |
-   | `ADMIN_EMAIL`                                        | Your email; this becomes the admin account                      |
-   | `ADMIN_PASSWORD`                                     | A long password (12+ characters) for that admin                 |
-   | `TOTP_ENCRYPTION_KEY`                                | The 64-character value from step 5.1                            |
+   | Variable                                                                     | Value                                                           |
+   | ---------------------------------------------------------------------------- | --------------------------------------------------------------- |
+   | `APP_URL`                                                                    | Put `https://casino.onrender.com` for now; you fix it in step 6 |
+   | `DATABASE_URL`                                                               | Neon string from step 2                                         |
+   | `REDIS_URL`                                                                  | Upstash `rediss://…` string from step 3                         |
+   | `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `MAIL_FROM` | From step 4                                                     |
+   | `ADMIN_EMAIL`                                                                | Your email; this becomes the admin account                      |
+   | `ADMIN_PASSWORD`                                                             | A long password (12+ characters) for that admin                 |
+   | `TOTP_ENCRYPTION_KEY`                                                        | The 64-character value from step 5.1                            |
 
    `JWT_ACCESS_SECRET` and `CSRF_SECRET` are generated by Render automatically.
 
@@ -120,6 +127,7 @@ git push
 
 - **Sleeping:** the first visit after a quiet spell takes ~30–60 s. No data is lost; open games and balances are in the database.
 - **Logs:** Render → your service → **Logs**.
+- **Emails not arriving:** search the logs for `Email`. `Email sent` means Gmail accepted it (check spam on the receiving side). `Google token refresh failed … invalid_grant` means the refresh token stopped working: publish the consent screen (step 4.2) and repeat step 4.4 for a new token. `Gmail API responded 403` usually means the Gmail API isn't enabled in the project.
 - **Backups:** Neon keeps a short restore history on the free plan. For your own copy, run `pg_dump "<DATABASE_URL>" > backup.sql` occasionally (needs PostgreSQL tools installed).
 - **Limits:** if the Upstash command quota runs out, Redis requests fail until the next month. Upstash's dashboard shows usage.
 - **Virtual credits only:** keep it a "social casino": no buying credits, no prizes, no cash-out. Adding real money or prizes brings gambling laws into play.
