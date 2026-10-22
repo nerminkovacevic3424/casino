@@ -30,6 +30,9 @@
       <a routerLink="/wallet" routerLinkActive="is-active" i18n="@@nav.wallet"
         >Wallet</a
       >
+      <a routerLink="/profile" routerLinkActive="is-active" i18n="@@nav.profile"
+        >Profile</a
+      >
       }
       <a routerLink="/verify" routerLinkActive="is-active" i18n="@@nav.verify"
         >Verify</a
@@ -108,6 +111,75 @@
 <div class="visually-hidden" aria-live="assertive" aria-atomic="true">
   {{ announcer.assertive() }}
 </div>
+
+<cas-age-gate />
+
+<!-- Reality check: time played and net result, at the interval the player chose. -->
+<cas-ui-modal
+  i18n-heading="@@reality.title"
+  heading="Reality check"
+  [open]="session.realityCheck() !== null"
+  (closed)="session.dismissRealityCheck()"
+>
+  @if (session.realityCheck(); as rc) {
+  <p i18n="@@reality.time">
+    You have been playing for {{ rc.elapsedMinutes }} minutes.
+  </p>
+  @if (rc.activity; as a) {
+  <p i18n="@@reality.activity">
+    This session: {{ a.rounds }} rounds, staked {{ a.staked | credits }}, won {{
+    a.won | credits }}. Net result:
+    <strong>{{ a.net | credits }}</strong>.
+  </p>
+  }
+  <div class="modal-actions">
+    <button
+      type="button"
+      class="btn btn--primary"
+      (click)="session.dismissRealityCheck()"
+      i18n="@@reality.continue"
+    >
+      Keep playing
+    </button>
+    <a
+      class="btn"
+      routerLink="/wallet"
+      (click)="session.dismissRealityCheck()"
+      i18n="@@reality.history"
+      >View history</a
+    >
+    <button
+      type="button"
+      class="btn"
+      (click)="endSession()"
+      i18n="@@reality.stop"
+    >
+      Stop and sign out
+    </button>
+  </div>
+  }
+</cas-ui-modal>
+
+<!-- Session time limit reached: the player is signed out. -->
+<cas-ui-modal
+  i18n-heading="@@sessionLimit.title"
+  heading="Session time limit reached"
+  [open]="session.limitReached()"
+  (closed)="endSession()"
+>
+  <p i18n="@@sessionLimit.text">
+    You reached the session time limit you set. You will now be signed out —
+    time for a break.
+  </p>
+  <button
+    type="button"
+    class="btn btn--primary"
+    (click)="endSession()"
+    i18n="@@sessionLimit.ok"
+  >
+    Sign out
+  </button>
+</cas-ui-modal>
 
 <ol
   class="toasts"

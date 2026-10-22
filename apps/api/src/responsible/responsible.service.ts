@@ -3,23 +3,20 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import {
+  LIMIT_KEYS,
+  type Activity,
+  type LimitKey,
+  type LimitValues,
+  type ResponsibleState,
+  type Usage,
+} from '@casino/shared-types';
 import { toBigMinor, toMinor } from '../common/money';
 import type { PlayerLimits } from '../generated/prisma/client';
 import { Prisma } from '../generated/prisma/client';
 import { PasswordService } from '../auth/password.service';
 import { TokenService } from '../auth/token.service';
 import { PrismaService, Tx } from '../prisma/prisma.service';
-
-export const LIMIT_KEYS = [
-  'dailyLossLimit',
-  'weeklyLossLimit',
-  'monthlyLossLimit',
-  'dailyWagerLimit',
-  'sessionLimitMinutes',
-  'realityCheckMinutes',
-] as const;
-export type LimitKey = (typeof LIMIT_KEYS)[number];
-export type LimitValues = Record<LimitKey, number | null>;
 
 /** Loosening a limit only takes effect after this delay. */
 export const COOLING_PERIOD_MS = 24 * 3_600_000;
@@ -40,29 +37,6 @@ export type CoolOffPeriod = keyof typeof COOL_OFF_PERIODS;
 export type ExclusionPeriod = keyof typeof EXCLUSION_PERIODS;
 /** "Permanent" self-exclusion is stored as a date far in the future. */
 const PERMANENT = new Date('9999-12-31T00:00:00Z');
-
-export interface Usage {
-  lossDay: number;
-  lossWeek: number;
-  lossMonth: number;
-  wagerDay: number;
-}
-
-export interface ResponsibleState {
-  limits: LimitValues;
-  pending: Partial<LimitValues> | null;
-  pendingEffectiveAt: string | null;
-  coolOffUntil: string | null;
-  selfExcludedUntil: string | null;
-  usage: Usage;
-}
-
-export interface Activity {
-  rounds: number;
-  staked: number;
-  won: number;
-  net: number;
-}
 
 @Injectable()
 export class ResponsibleService {
@@ -329,3 +303,5 @@ function toColumns(values: Partial<LimitValues>): LimitColumns {
     if (data[key] === undefined) delete data[key];
   return data;
 }
+
+export type { Activity, LimitValues, ResponsibleState };

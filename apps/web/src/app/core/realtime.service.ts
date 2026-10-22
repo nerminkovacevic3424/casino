@@ -1,4 +1,5 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
+import type { JackpotWin } from '@casino/shared-types';
 import { Socket, io } from 'socket.io-client';
 import { SessionRefresher } from './session-refresh.interceptor';
 import { WalletStore } from './wallet.store';
@@ -12,6 +13,7 @@ export class RealtimeService {
   private socket: Socket | null = null;
   readonly connected = signal(false);
   readonly jackpot = signal<number | null>(null);
+  readonly jackpotWin = signal<JackpotWin | null>(null);
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.disconnect());
@@ -34,12 +36,10 @@ export class RealtimeService {
     this.socket.on('unauthorized', () => {
       if (this.retriedAuth) return this.disconnect();
       this.retriedAuth = true;
-      this.refresher
-        .refresh()
-        .subscribe({
-          next: () => this.reconnect(),
-          error: () => this.disconnect(),
-        });
+      this.refresher.refresh().subscribe({
+        next: () => this.reconnect(),
+        error: () => this.disconnect(),
+      });
     });
     this.socket.on('disconnect', () => this.connected.set(false));
     this.socket.on('balance', (payload: { balance: number }) =>
@@ -48,6 +48,9 @@ export class RealtimeService {
     this.socket.on('jackpot', (payload: { amount: number }) =>
       this.jackpot.set(payload.amount),
     );
+    this.socket.on('jackpot-won', (win: JackpotWin) => {
+      this.jackpotWin.set(win);
+    });
   }
 
   /** After a token refresh the server needs a fresh handshake to see the new cookie. */

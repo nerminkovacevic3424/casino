@@ -1,0 +1,131 @@
+<div class="page">
+  <section class="hero" aria-labelledby="lobby-title">
+    <div>
+      <h1 id="lobby-title" i18n="@@lobby.title">
+        Play for fun. Verify every spin.
+      </h1>
+      <p i18n="@@lobby.lead">
+        Free virtual credits, provably fair results and no real money — ever.
+      </p>
+      @if (auth.status() === 'anonymous') {
+      <a
+        class="btn btn--primary"
+        routerLink="/auth/register"
+        i18n="@@lobby.join"
+        >Claim 1,000 free credits</a
+      >
+      }
+    </div>
+    <cas-jackpot-ticker />
+  </section>
+
+  @if (recent().length > 0) {
+  <section class="recent" aria-labelledby="recent-title">
+    <h2 id="recent-title" i18n="@@lobby.recent">Recently played</h2>
+    <ul class="recent__list" role="list">
+      @for (game of recent(); track game.id) {
+      <li>
+        <a class="recent__item" [routerLink]="link(game)">
+          <span aria-hidden="true">{{ icon(game.id) }}</span>
+          {{ game.name }}
+        </a>
+      </li>
+      }
+    </ul>
+  </section>
+  }
+
+  <section aria-labelledby="games-title">
+    <div class="toolbar">
+      <h2 id="games-title" i18n="@@lobby.games">Games</h2>
+      <div class="search">
+        <label
+          for="game-search"
+          class="visually-hidden"
+          i18n="@@lobby.searchLabel"
+          >Search games</label
+        >
+        <input
+          id="game-search"
+          type="search"
+          [value]="query()"
+          (input)="query.set($any($event.target).value)"
+          i18n-placeholder="@@lobby.searchPlaceholder"
+          placeholder="Search games…"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+
+    <div
+      class="filters"
+      role="group"
+      i18n-aria-label="@@lobby.filterLabel"
+      aria-label="Filter games"
+    >
+      @for (f of filters; track f.value) { @if (f.value !== 'favourites' ||
+      auth.isAuthenticated()) {
+      <button
+        type="button"
+        class="chip"
+        [attr.aria-pressed]="filter() === f.value"
+        (click)="filter.set(f.value)"
+      >
+        {{ f.label }}
+      </button>
+      } }
+    </div>
+
+    <p class="visually-hidden" aria-live="polite" i18n="@@lobby.count">
+      {{ visible().length }} games shown
+    </p>
+
+    <ul class="grid" role="list">
+      @for (game of visible(); track game.id) {
+      <li class="tile" [class.tile--disabled]="!game.enabled">
+        <span class="tile__icon" aria-hidden="true">{{ icon(game.id) }}</span>
+        <h3 class="tile__name">{{ game.name }}</h3>
+        <p class="tile__meta">
+          <span class="badge">{{ categoryLabel(game.category) }}</span>
+          <span i18n="@@lobby.rtp">RTP {{ (game.rtp * 100).toFixed(2) }}%</span>
+        </p>
+        @if (game.enabled) {
+        <a class="tile__link" [routerLink]="link(game)">
+          <span class="visually-hidden" i18n="@@lobby.play"
+            >Play {{ game.name }}</span
+          >
+        </a>
+        } @else {
+        <p class="tile__status" i18n="@@lobby.unavailable">
+          Temporarily unavailable
+        </p>
+        } @if (auth.isAuthenticated()) {
+        <button
+          type="button"
+          class="fav"
+          [attr.aria-pressed]="favourites().has(game.id)"
+          (click)="toggleFavourite(game)"
+          [attr.aria-label]="favouriteLabel(game)"
+        >
+          <span aria-hidden="true"
+            >{{ favourites().has(game.id) ? '★' : '☆' }}</span
+          >
+        </button>
+        }
+      </li>
+      } @empty {
+      <li class="empty">
+        @if (filter() === 'favourites') {
+        <ng-container i18n="@@lobby.noFavourites"
+          >No favourites yet — tap the star on any game.</ng-container
+        >
+        } @else {
+        <ng-container i18n="@@lobby.noResults"
+          >No games match “{{ query() }}”.</ng-container
+        >
+        }
+      </li>
+      }
+    </ul>
+  </section>
+</div>

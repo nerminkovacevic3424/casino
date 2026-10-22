@@ -14,13 +14,21 @@ import {
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { GAME_CATALOG, isGameId, type GameId } from '@casino/shared-types';
+import {
+  GAME_CATALOG,
+  isGameId,
+  type GameId,
+  type GameStats,
+  type JackpotState,
+  type ProfileStats,
+  type RecentGame,
+} from '@casino/shared-types';
 import type { Response } from 'express';
 import { clearAuthCookies } from '../auth/cookies';
 import { AuthUser, CurrentUser, Public } from '../common/auth-decorators';
 import { toMinor } from '../common/money';
 import { APP_CONFIG, AppConfig } from '../config/env';
-import { JackpotService, JackpotWin } from '../jackpot/jackpot.service';
+import { JackpotService } from '../jackpot/jackpot.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   ActivityQueryDto,
@@ -33,22 +41,6 @@ import {
   ResponsibleService,
   ResponsibleState,
 } from './responsible.service';
-
-export interface GameStats {
-  gameId: GameId;
-  rounds: number;
-  staked: number;
-  won: number;
-}
-
-export interface ProfileStats {
-  totalRounds: number;
-  totalStaked: number;
-  totalWon: number;
-  biggestWin: number;
-  favouriteGame: GameId | null;
-  byGame: GameStats[];
-}
 
 @ApiTags('player')
 @Controller()
@@ -153,9 +145,7 @@ export class PlayerController {
 
   @Get('games/recent')
   @ApiCookieAuth('access_token')
-  async recent(
-    @CurrentUser() user: AuthUser,
-  ): Promise<{ gameId: string; lastPlayedAt: string }[]> {
+  async recent(@CurrentUser() user: AuthUser): Promise<RecentGame[]> {
     const rows = await this.prisma.gameRound.groupBy({
       by: ['gameId'],
       where: { userId: user.id },
@@ -210,10 +200,7 @@ export class PlayerController {
 
   @Public()
   @Get('jackpot')
-  async jackpotState(): Promise<{
-    amount: number;
-    lastWin: JackpotWin | null;
-  }> {
+  async jackpotState(): Promise<JackpotState> {
     return {
       amount: await this.jackpot.amount(),
       lastWin: await this.jackpot.lastWin(),

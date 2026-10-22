@@ -3,23 +3,22 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   resource,
+  signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { GAME_CATALOG, type GameSummary } from '@casino/shared-types';
+import {
+  GAME_CATALOG,
+  type GameSummary,
+  type RecentGame,
+} from '@casino/shared-types';
 import { firstValueFrom } from 'rxjs';
+import { errorMessage } from '../../core/api-error';
 import { AuthStore } from '../../core/auth.store';
-
-/** Games with a finished client. The rest are listed as "coming soon". */
-export const PLAYABLE_GAMES: ReadonlySet<string> = new Set([
-  'classic-3-reel',
-  'video-5-reel',
-  'megaways',
-  'roulette',
-  'blackjack',
-  'video-poker',
-]);
+import { ToastService } from '../../core/toast.service';
+import { JackpotTickerComponent } from './jackpot-ticker.component';
 
 const ICONS: Record<string, string> = {
   'classic-3-reel': '🍒',
@@ -30,153 +29,49 @@ const ICONS: Record<string, string> = {
   'video-poker': '🃏',
 };
 
+type Filter = 'all' | 'slots' | 'table' | 'cards' | 'favourites';
+
+/** Normalises for accent- and case-insensitive search. */
+const fold = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+
 @Component({
   selector: 'cas-lobby-page',
-  imports: [RouterLink],
+  imports: [RouterLink, JackpotTickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="page">
-      <section class="hero" aria-labelledby="lobby-title">
-        <h1 id="lobby-title" i18n="@@lobby.title">
-          Play for fun. Verify every spin.
-        </h1>
-        <p i18n="@@lobby.lead">
-          Free virtual credits, provably fair results and no real money — ever.
-        </p>
-        @if (auth.status() === 'anonymous') {
-          <a
-            class="btn btn--primary"
-            routerLink="/auth/register"
-            i18n="@@lobby.join"
-            >Claim 1,000 free credits</a
-          >
-        }
-      </section>
-
-      <h2 i18n="@@lobby.games">Games</h2>
-      <ul class="grid" role="list">
-        @for (game of games(); track game.id) {
-          <li class="tile" [class.tile--disabled]="!isPlayable(game)">
-            <span class="tile__icon" aria-hidden="true">{{
-              icon(game.id)
-            }}</span>
-            <h3 class="tile__name">{{ game.name }}</h3>
-            <p class="tile__meta">
-              <span class="chip">{{ categoryLabel(game.category) }}</span>
-              <span i18n="@@lobby.rtp"
-                >RTP {{ (game.rtp * 100).toFixed(2) }}%</span
-              >
-            </p>
-            @if (isPlayable(game)) {
-              <a
-                class="tile__link"
-                [routerLink]="['/games', ...game.route.split('/')]"
-              >
-                <span class="visually-hidden" i18n="@@lobby.play"
-                  >Play {{ game.name }}</span
-                >
-              </a>
-            } @else if (!game.enabled) {
-              <p class="tile__status" i18n="@@lobby.unavailable">
-                Temporarily unavailable
-              </p>
-            } @else {
-              <p class="tile__status" i18n="@@lobby.soon">Coming soon</p>
-            }
-          </li>
-        }
-      </ul>
-    </div>
-  `,
-  styles: `
-    .hero {
-      padding: var(--space-6) 0 var(--space-5);
-    }
-    .hero h1 {
-      font-size: var(--font-size-3xl);
-      max-width: 18ch;
-    }
-    .hero p {
-      color: var(--color-text-muted);
-      font-size: var(--font-size-lg);
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
-      gap: var(--space-4);
-      padding: 0;
-      margin: 0;
-    }
-    .tile {
-      position: relative;
-      display: grid;
-      gap: var(--space-2);
-      padding: var(--space-5);
-      border-radius: var(--radius-lg);
-      background: linear-gradient(
-        160deg,
-        var(--color-surface-2),
-        var(--color-surface)
-      );
-      border: 1px solid var(--color-border);
-      transition:
-        transform var(--duration-base) var(--ease-out),
-        border-color var(--duration-base);
-    }
-    .tile:not(.tile--disabled):hover {
-      transform: translateY(-3px);
-      border-color: var(--color-primary);
-    }
-    .tile:focus-within {
-      outline: 3px solid var(--color-focus);
-      outline-offset: 2px;
-    }
-    .tile--disabled {
-      opacity: 0.7;
-    }
-    .tile__icon {
-      font-size: 2.5rem;
-    }
-    .tile__name {
-      margin: 0;
-      font-size: var(--font-size-lg);
-    }
-    .tile__meta {
-      display: flex;
-      gap: var(--space-2);
-      align-items: center;
-      margin: 0;
-      color: var(--color-text-muted);
-      font-size: var(--font-size-sm);
-    }
-    .tile__status {
-      margin: 0;
-      color: var(--color-text-muted);
-      font-size: var(--font-size-sm);
-    }
-    /* Whole tile is clickable; the link text stays available to screen readers. */
-    .tile__link {
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-    }
-    .tile__link:focus-visible {
-      outline: none;
-    }
-    .chip {
-      padding: 2px var(--space-2);
-      border-radius: var(--radius-pill);
-      background: var(--color-surface-3);
-      color: var(--color-text);
-    }
-  `,
+  templateUrl: './lobby.page.html',
+  styleUrl: './lobby.page.scss',
 })
 export class LobbyPage {
   protected readonly auth = inject(AuthStore);
   private readonly http = inject(HttpClient);
+  private readonly toasts = inject(ToastService);
+
+  protected readonly query = signal('');
+  protected readonly filter = signal<Filter>('all');
+  protected readonly favourites = signal<ReadonlySet<string>>(new Set());
+  protected readonly filters: readonly { value: Filter; label: string }[] = [
+    { value: 'all', label: $localize`:@@lobby.filter.all:All games` },
+    { value: 'slots', label: $localize`:@@category.slots:Slots` },
+    { value: 'table', label: $localize`:@@category.table:Table` },
+    { value: 'cards', label: $localize`:@@category.cards:Cards` },
+    {
+      value: 'favourites',
+      label: $localize`:@@lobby.filter.favourites:Favourites`,
+    },
+  ];
 
   private readonly catalog = resource({
     loader: () => firstValueFrom(this.http.get<GameSummary[]>('/api/games')),
+  });
+
+  private readonly recentRes = resource({
+    params: () => (this.auth.isAuthenticated() ? true : undefined),
+    loader: () =>
+      firstValueFrom(this.http.get<RecentGame[]>('/api/games/recent')),
   });
 
   /** Falls back to the static catalog if the API is unreachable. */
@@ -186,12 +81,42 @@ export class LobbyPage {
       GAME_CATALOG.map((g) => ({ ...g, enabled: true })),
   );
 
-  protected isPlayable(game: GameSummary): boolean {
-    return game.enabled && PLAYABLE_GAMES.has(game.id);
+  protected readonly visible = computed(() => {
+    const q = fold(this.query().trim());
+    const filter = this.filter();
+    const favourites = this.favourites();
+    return this.games().filter((g) => {
+      if (filter === 'favourites' && !favourites.has(g.id)) return false;
+      if (filter !== 'all' && filter !== 'favourites' && g.category !== filter)
+        return false;
+      return (
+        !q ||
+        fold(g.name).includes(q) ||
+        fold(this.categoryLabel(g.category)).includes(q)
+      );
+    });
+  });
+
+  protected readonly recent = computed(() => {
+    const byId = new Map(this.games().map((g) => [g.id as string, g] as const));
+    return (this.recentRes.value() ?? [])
+      .map((r) => byId.get(r.gameId))
+      .filter((g): g is GameSummary => g !== undefined);
+  });
+
+  constructor() {
+    effect(() => {
+      if (this.auth.isAuthenticated()) void this.loadFavourites();
+      else this.favourites.set(new Set());
+    });
   }
 
   protected icon(id: string): string {
     return ICONS[id] ?? '🎲';
+  }
+
+  protected link(game: GameSummary): string[] {
+    return ['/games', ...game.route.split('/')];
   }
 
   protected categoryLabel(category: GameSummary['category']): string {
@@ -202,6 +127,41 @@ export class LobbyPage {
         return $localize`:@@category.table:Table`;
       case 'cards':
         return $localize`:@@category.cards:Cards`;
+    }
+  }
+
+  protected favouriteLabel(game: GameSummary): string {
+    return $localize`:@@lobby.favourite:Favourite ${game.name}:name:`;
+  }
+
+  protected async toggleFavourite(game: GameSummary): Promise<void> {
+    const current = this.favourites();
+    const isFav = current.has(game.id);
+    // Optimistic: update now, roll back if the server refuses.
+    const next = new Set(current);
+    if (isFav) next.delete(game.id);
+    else next.add(game.id);
+    this.favourites.set(next);
+    try {
+      const url = `/api/favourites/${encodeURIComponent(game.id)}`;
+      await firstValueFrom(
+        isFav ? this.http.delete(url) : this.http.put(url, {}),
+      );
+    } catch (err) {
+      this.favourites.set(current);
+      this.toasts.error(errorMessage(err));
+    }
+  }
+
+  private async loadFavourites(): Promise<void> {
+    try {
+      this.favourites.set(
+        new Set(
+          await firstValueFrom(this.http.get<string[]>('/api/favourites')),
+        ),
+      );
+    } catch {
+      // Favourites are optional.
     }
   }
 }

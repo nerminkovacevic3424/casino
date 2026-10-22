@@ -1,5 +1,6 @@
 import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { JACKPOT_SEED, jackpotContribution } from '@casino/game-engine';
+import type { JackpotWin } from '@casino/shared-types';
 import Redis from 'ioredis';
 import { REDIS } from '../redis/redis.module';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
@@ -14,12 +15,6 @@ local pool = tonumber(redis.call('GET', KEYS[1]) or ARGV[1])
 redis.call('SET', KEYS[1], ARGV[1])
 return pool
 `;
-
-export interface JackpotWin {
-  amount: number;
-  displayName: string;
-  wonAt: string;
-}
 
 /**
  * Community jackpot pool, shared by every API instance through Redis. Grows

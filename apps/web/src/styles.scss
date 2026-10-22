@@ -95,6 +95,12 @@ textarea {
     }
   }
 
+  &--danger {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+    color: #1a0306;
+  }
+
   &--ghost {
     background: transparent;
     border-color: transparent;

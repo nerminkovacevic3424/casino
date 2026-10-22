@@ -23,6 +23,13 @@ export const appRoutes: Route[] = [
       import('./features/wallet/wallet.page').then((m) => m.WalletPage),
   },
   {
+    path: 'profile',
+    canActivate: [authGuard],
+    title: $localize`:@@title.profile:Profile · Casino`,
+    loadComponent: () =>
+      import('./features/profile/profile.page').then((m) => m.ProfilePage),
+  },
+  {
     path: 'games/roulette',
     canActivate: [authGuard],
     title: $localize`:@@title.roulette:European Roulette · Casino`,

@@ -1,0 +1,179 @@
+<p class="lead" i18n="@@rg.lead">
+  Gambling should stay fun. Set limits before you play, take a break whenever
+  you like, and stop if it stops being enjoyable.
+</p>
+
+@if (state(); as s) {
+  @if (s.coolOffUntil) {
+    <div class="alert alert--info" role="status" i18n="@@rg.onBreak">
+      You are taking a break until {{ s.coolOffUntil | date: 'medium' }}.
+    </div>
+  }
+
+  <h3 i18n="@@rg.limitsTitle">Limits</h3>
+  <form [formGroup]="limitsForm" (ngSubmit)="saveLimits()" novalidate>
+    <div class="limits">
+      @for (key of keys; track key) {
+        <div class="field">
+          <label [for]="'rg-' + key">{{ label(key) }}</label>
+          <input
+            [id]="'rg-' + key"
+            type="number"
+            inputmode="decimal"
+            [step]="isMoney(key) ? '0.01' : '5'"
+            [min]="isMoney(key) ? '0.01' : '5'"
+            [formControlName]="key"
+            i18n-placeholder="@@rg.noLimit"
+            placeholder="No limit"
+            [attr.aria-describedby]="'rg-' + key + '-hint'"
+          />
+          <span class="hint" [id]="'rg-' + key + '-hint'">
+            @if (usageFor(key); as used) {
+              <ng-container i18n="@@rg.used"
+                >Used: {{ used | credits }}</ng-container
+              >
+            }
+            @if (pendingText(key); as pending) {
+              <span class="pending">{{ pending }}</span>
+            }
+          </span>
+        </div>
+      }
+    </div>
+    @if (s.pendingEffectiveAt) {
+      <p class="hint" i18n="@@rg.pendingAt">
+        Relaxed limits take effect {{ s.pendingEffectiveAt | date: 'medium' }}.
+      </p>
+    }
+    <button
+      type="submit"
+      class="btn btn--primary"
+      [disabled]="busy()"
+      i18n="@@rg.save"
+    >
+      Save limits
+    </button>
+    <p class="hint" i18n="@@rg.rules">
+      Leave a field empty to remove that limit. Lower limits apply immediately;
+      higher limits or removals wait 24 hours.
+    </p>
+  </form>
+
+  <h3 i18n="@@rg.breakTitle">Take a break</h3>
+  <p i18n="@@rg.breakLead">
+    Pause all betting for a while. You can still sign in and see your account. A
+    break cannot be shortened.
+  </p>
+  <div class="buttons">
+    @for (p of coolOffs; track p) {
+      @if (confirmCoolOff() === p) {
+        <span
+          class="confirm"
+          role="group"
+          i18n-aria-label="@@rg.confirmLabel"
+          aria-label="Confirm break"
+        >
+          <span i18n="@@rg.confirmText"
+            >Pause betting for {{ periodLabel(p) }}?</span
+          >
+          <button
+            type="button"
+            class="btn btn--primary btn--small"
+            (click)="coolOff(p)"
+            [disabled]="busy()"
+            i18n="@@rg.confirmYes"
+          >
+            Yes, start break
+          </button>
+          <button
+            type="button"
+            class="btn btn--small"
+            (click)="confirmCoolOff.set(null)"
+            i18n="@@rg.confirmNo"
+          >
+            Cancel
+          </button>
+        </span>
+      } @else {
+        <button
+          type="button"
+          class="btn"
+          (click)="confirmCoolOff.set(p)"
+          [disabled]="busy()"
+        >
+          {{ periodLabel(p) }}
+        </button>
+      }
+    }
+  </div>
+
+  <h3 i18n="@@rg.excludeTitle">Self-exclusion</h3>
+  <p i18n="@@rg.excludeLead">
+    Close your account for play for a long period. You will be signed out
+    everywhere and cannot sign back in until it ends. This cannot be undone
+    early.
+  </p>
+  <form
+    [formGroup]="excludeForm"
+    (ngSubmit)="selfExclude()"
+    novalidate
+    class="exclude"
+  >
+    <div class="field">
+      <label for="rg-ex-period" i18n="@@rg.excludePeriod">Period</label>
+      <select id="rg-ex-period" formControlName="period">
+        @for (p of exclusions; track p) {
+          <option [value]="p">{{ periodLabel(p) }}</option>
+        }
+      </select>
+    </div>
+    <div class="field">
+      <label for="rg-ex-password" i18n="@@field.password">Password</label>
+      <input
+        id="rg-ex-password"
+        type="password"
+        formControlName="password"
+        autocomplete="current-password"
+      />
+    </div>
+    <div class="checkbox">
+      <input
+        id="rg-ex-understood"
+        type="checkbox"
+        formControlName="understood"
+      />
+      <label for="rg-ex-understood" i18n="@@rg.understood"
+        >I understand my account will be closed for play and this cannot be
+        reversed early.</label
+      >
+    </div>
+    <button
+      type="submit"
+      class="btn btn--danger"
+      [disabled]="busy()"
+      i18n="@@rg.excludeSubmit"
+    >
+      Self-exclude
+    </button>
+  </form>
+
+  <h3 i18n="@@rg.helpTitle">Need to talk to someone?</h3>
+  <p i18n="@@rg.help">
+    Free, confidential support is available from organisations such as
+    <a
+      href="https://www.gamblingtherapy.org"
+      target="_blank"
+      rel="noopener noreferrer"
+      >Gambling Therapy</a
+    >
+    and
+    <a
+      href="https://www.gamcare.org.uk"
+      target="_blank"
+      rel="noopener noreferrer"
+      >GamCare</a
+    >.
+  </p>
+} @else {
+  <p class="hint" i18n="@@rg.loading">Loading your settings…</p>
+}
