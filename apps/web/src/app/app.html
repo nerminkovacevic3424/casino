@@ -33,7 +33,11 @@
       <a routerLink="/profile" routerLinkActive="is-active" i18n="@@nav.profile"
         >Profile</a
       >
-      }
+      @if (auth.isAdmin()) {
+      <a routerLink="/admin" routerLinkActive="is-active" i18n="@@nav.admin"
+        >Admin</a
+      >
+      } }
       <a routerLink="/verify" routerLinkActive="is-active" i18n="@@nav.verify"
         >Verify</a
       >

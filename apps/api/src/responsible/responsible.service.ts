@@ -171,8 +171,12 @@ export class ResponsibleService {
   async assertCanBet(tx: Tx, userId: string, stake: number): Promise<void> {
     const user = await tx.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { coolOffUntil: true, selfExcludedUntil: true },
+      select: { coolOffUntil: true, selfExcludedUntil: true, status: true },
     });
+    // Access tokens outlive a suspension by a few minutes; block bets at once.
+    if (user.status !== 'ACTIVE') {
+      throw new ForbiddenException('Your account is suspended');
+    }
     const now = Date.now();
     if (user.selfExcludedUntil && user.selfExcludedUntil.getTime() > now) {
       throw new ForbiddenException('Your account is self-excluded from play');
@@ -269,7 +273,7 @@ export function isTighter(
   return current === null || next < current;
 }
 
-function toValues(limits: PlayerLimits | null): LimitValues {
+export function toValues(limits: PlayerLimits | null): LimitValues {
   const values = {} as LimitValues;
   for (const key of LIMIT_KEYS) {
     const v = limits?.[key] ?? null;

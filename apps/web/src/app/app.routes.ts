@@ -1,5 +1,5 @@
 import { Route } from '@angular/router';
-import { authGuard } from './core/guards';
+import { adminGuard, authGuard } from './core/guards';
 
 /** Every feature is lazy-loaded; the initial bundle is just the shell. */
 export const appRoutes: Route[] = [
@@ -28,6 +28,13 @@ export const appRoutes: Route[] = [
     title: $localize`:@@title.profile:Profile · Casino`,
     loadComponent: () =>
       import('./features/profile/profile.page').then((m) => m.ProfilePage),
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuard, adminGuard],
+    title: $localize`:@@title.admin:Admin · Casino`,
+    loadComponent: () =>
+      import('./features/admin/admin.page').then((m) => m.AdminPage),
   },
   {
     path: 'games/roulette',

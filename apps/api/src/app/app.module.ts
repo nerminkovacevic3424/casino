@@ -10,6 +10,7 @@ import Redis from 'ioredis';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
+import { AdminModule } from '../admin/admin.module';
 import { AuthModule } from '../auth/auth.module';
 import { AccessTokenGuard, RolesGuard } from '../auth/guards';
 import { CsrfMiddleware } from '../common/csrf';
@@ -82,6 +83,7 @@ export class AppModule implements NestModule {
         RealtimeModule,
         PlayerModule,
         GamesModule,
+        AdminModule,
       ],
       controllers: [HealthController],
       providers: [
