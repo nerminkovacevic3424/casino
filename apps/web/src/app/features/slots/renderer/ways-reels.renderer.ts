@@ -25,6 +25,8 @@ export class WaysReelsRenderer {
   private readonly app = new Application();
   private readonly board = new Container();
   private readonly frames = new Graphics();
+  /** Cell plates behind the symbols, so every reel shows its row count. */
+  private readonly plates = new Graphics();
   private atlas!: SymbolAtlas;
   private tweens!: Tweener;
   private columns: Cell[][] = [];
@@ -72,6 +74,7 @@ export class WaysReelsRenderer {
     this.app.ticker.add(this.idleCheck);
 
     this.app.stage.addChild(this.board);
+    this.board.addChild(this.plates);
     for (let r = 0; r < this.config.reels.length; r++) {
       const reel = new Container();
       const mask = new Graphics();
@@ -141,6 +144,7 @@ export class WaysReelsRenderer {
         await this.tweens.wait(motion ? r * 140 * speed : 0);
         this.setColumn(r, column);
         this.layoutColumn(r);
+        this.drawPlates();
         if (motion) {
           const cells = this.columns[r];
           await Promise.all(
@@ -307,6 +311,27 @@ export class WaysReelsRenderer {
     sprite.x = this.reelWidth() / 2;
   }
 
+  private drawPlates(): void {
+    const g = this.plates.clear();
+    const w = this.reelWidth();
+    const inset = Math.max(2, w * 0.03);
+    this.columns.forEach((column, r) => {
+      const h = this.cellHeight(r);
+      column.forEach((_, row) => {
+        g.roundRect(
+          r * w + inset,
+          row * h + inset,
+          w - 2 * inset,
+          h - 2 * inset,
+          Math.min(w, h) * 0.12,
+        ).fill({
+          color: r % 2 === 0 ? 0x1c2440 : 0x222b4d,
+          alpha: 0.9,
+        });
+      });
+    });
+  }
+
   private layoutColumn(r: number): void {
     const h = this.cellHeight(r);
     this.columns[r].forEach((cell, row) => {
@@ -336,6 +361,7 @@ export class WaysReelsRenderer {
         .fill({ color: 0xffffff });
       this.layoutColumn(r);
     });
+    this.drawPlates();
     this.multiplierText.style.fontSize = Math.max(18, size * 0.45);
     this.multiplierText.position.set(
       this.board.x + this.width - 6,

@@ -23,7 +23,6 @@ const NO_REFRESH = [
   '/api/auth/refresh',
   '/api/auth/register',
   '/api/auth/logout',
-  '/api/auth/me',
 ];
 
 /** Single-flight refresh: concurrent 401s share one POST /api/auth/refresh. */
