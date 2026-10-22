@@ -16,6 +16,8 @@ export interface Preferences {
   volume: number;
   motion: MotionPreference;
   turbo: boolean;
+  /** Space / Enter anywhere on a game page spins or deals (WCAG 2.1.4: can be switched off). */
+  spinHotkey: boolean;
 }
 
 const STORAGE_KEY = 'casino.preferences.v1';
@@ -24,6 +26,7 @@ const DEFAULTS: Preferences = {
   volume: 0.6,
   motion: 'system',
   turbo: false,
+  spinHotkey: true,
 };
 
 function load(): Preferences {
@@ -42,6 +45,10 @@ function load(): Preferences {
           ? parsed.motion
           : 'system',
       turbo: typeof parsed.turbo === 'boolean' ? parsed.turbo : DEFAULTS.turbo,
+      spinHotkey:
+        typeof parsed.spinHotkey === 'boolean'
+          ? parsed.spinHotkey
+          : DEFAULTS.spinHotkey,
     };
   } catch {
     return DEFAULTS;
@@ -78,6 +85,9 @@ export const PreferencesStore = signalStore(
     setTurbo(turbo: boolean): void {
       patchState(store, { turbo });
     },
+    setSpinHotkey(spinHotkey: boolean): void {
+      patchState(store, { spinHotkey });
+    },
   })),
   withHooks({
     onInit(store) {
@@ -88,6 +98,7 @@ export const PreferencesStore = signalStore(
           volume: store.volume(),
           motion: store.motion(),
           turbo: store.turbo(),
+          spinHotkey: store.spinHotkey(),
         };
         try {
           globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(prefs));

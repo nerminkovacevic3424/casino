@@ -27,8 +27,6 @@
         aria-describedby="slot-grid slot-keys"
         [attr.aria-busy]="phase() !== 'idle'"
         [style.aspect-ratio]="aspectRatio()"
-        (keydown.space)="onStageKey($event)"
-        (keydown.enter)="onStageKey($event)"
         data-testid="slot-stage"
       ></div>
       <p id="slot-grid" class="visually-hidden">{{ gridDescription() }}</p>
@@ -154,11 +152,12 @@
     </div>
   </div>
 
+  @if (prefs.spinHotkey()) {
   <p id="slot-keys" class="keys-hint" i18n="@@slot.keys">
-    Tip: focus the reels and press Space or Enter to spin.
+    Tip: press Space or Enter to spin, or to stop autoplay. You can turn this
+    shortcut off in your profile.
   </p>
-
-  @if (lastFairness(); as f) {
+  } @if (lastFairness(); as f) {
   <p class="fairness">
     <span i18n="@@slot.fairness"
       >Last round: nonce {{ f.nonce }}, server seed hash</span

@@ -23,6 +23,7 @@ import {
 import type { RoundResponse } from '@casino/shared-types';
 import { CreditsPipe, formatCredits } from '@casino/ui';
 import { errorMessage } from '../../core/api-error';
+import { isSpinHotkey } from '../../core/spin-hotkey';
 import { Announcer } from '../../core/announcer.service';
 import { GameApi } from '../../core/game-api.service';
 import { PreferencesStore } from '../../core/preferences.store';
@@ -50,12 +51,13 @@ type Slip = ReadonlyMap<string, Placed>;
   imports: [CreditsPipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './roulette.page.html',
+  host: { '(document:keydown)': 'onKey($event)' },
   styleUrl: './roulette.page.scss',
 })
 export class RoulettePage {
   protected readonly wallet = inject(WalletStore);
   private readonly api = inject(GameApi);
-  private readonly prefs = inject(PreferencesStore);
+  protected readonly prefs = inject(PreferencesStore);
   private readonly sound = inject(SoundService);
   private readonly announcer = inject(Announcer);
   private readonly toasts = inject(ToastService);
@@ -212,6 +214,13 @@ export class RoulettePage {
     this.undoStack.update((s) => [...s.slice(-49), this.slip()]);
     this.slip.set(next);
     return true;
+  }
+
+  /** Space / Enter anywhere on the page spins (unless switched off in the profile). */
+  protected onKey(event: KeyboardEvent): void {
+    if (!this.prefs.spinHotkey() || !isSpinHotkey(event)) return;
+    event.preventDefault();
+    void this.spin();
   }
 
   protected async spin(): Promise<void> {

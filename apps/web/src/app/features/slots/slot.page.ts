@@ -27,6 +27,7 @@ import {
 import type { SlotSpinResponse } from '@casino/shared-types';
 import { CreditsPipe, ModalComponent, formatCredits } from '@casino/ui';
 import { errorMessage } from '../../core/api-error';
+import { isSpinHotkey } from '../../core/spin-hotkey';
 import { Announcer } from '../../core/announcer.service';
 import { PreferencesStore } from '../../core/preferences.store';
 import { SoundService } from '../../core/sound.service';
@@ -77,6 +78,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './slot.page.html',
+  host: { '(document:keydown)': 'onKey($event)' },
   styleUrl: './slot.page.scss',
 })
 export class SlotPage {
@@ -224,9 +226,12 @@ export class SlotPage {
     );
   }
 
-  protected onStageKey(event: Event): void {
+  /** Space / Enter anywhere on the page spins (unless switched off in the profile). */
+  protected onKey(event: KeyboardEvent): void {
+    if (!this.prefs.spinHotkey() || !isSpinHotkey(event)) return;
     event.preventDefault(); // Space would otherwise scroll the page
-    if (this.canSpin()) void this.spin();
+    if (this.autoplay()) this.stopAutoplay();
+    else if (this.canSpin()) void this.spin();
   }
 
   protected async spin(): Promise<void> {
