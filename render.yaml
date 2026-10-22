@@ -1,5 +1,5 @@
 # Render Blueprint: one free Docker web service serving the API and the web app.
-# Postgres (Neon), Redis (Upstash) and email (Brevo) are external free services;
+# Postgres (Neon), Redis (Upstash) and email (Mailjet) are external free services;
 # their connection details are asked for when the Blueprint is first applied.
 # Step-by-step guide: DEPLOY.md
 services:
@@ -29,16 +29,15 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
-      - key: SMTP_HOST
-        value: smtp-relay.brevo.com
-      - key: SMTP_PORT
-        value: '587'
-      - key: SMTP_USER
+      # Render's free plan blocks SMTP ports, so email goes through Mailjet's HTTPS API.
+      - key: MAIL_PROVIDER
+        value: mailjet
+      - key: MAILJET_API_KEY
         sync: false
-      - key: SMTP_PASSWORD
+      - key: MAILJET_SECRET_KEY
         sync: false
-      # e.g. "Casino <you@gmail.com>"; must be a sender verified in Brevo.
-      - key: SMTP_FROM
+      # e.g. "Casino <you@gmail.com>"; must be a sender address verified in Mailjet.
+      - key: MAIL_FROM
         sync: false
       - key: ADMIN_EMAIL
         sync: false

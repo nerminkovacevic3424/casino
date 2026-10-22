@@ -21,7 +21,7 @@ export class SmtpMailer extends Mailer {
   constructor(@Inject(APP_CONFIG) private readonly config: AppConfig) {
     super();
     this.transport = createTransport({
-      host: config.SMTP_HOST,
+      host: config.SMTP_HOST ?? 'localhost',
       port: config.SMTP_PORT,
       secure: config.SMTP_PORT === 465,
       auth: config.SMTP_USER
@@ -31,9 +31,62 @@ export class SmtpMailer extends Mailer {
   }
 
   async send(message: MailMessage): Promise<void> {
-    await this.transport.sendMail({ from: this.config.SMTP_FROM, ...message });
+    await this.transport.sendMail({ from: this.config.MAIL_FROM, ...message });
     this.logger.log({ to: message.to, subject: message.subject }, 'Email sent');
   }
+}
+
+/** Mailjet's HTTPS API (v3.1); works where outbound SMTP ports are blocked. */
+@Injectable()
+export class MailjetMailer extends Mailer {
+  private readonly logger = new Logger(MailjetMailer.name);
+  private readonly from: { Email: string; Name?: string };
+  private readonly auth: string;
+
+  constructor(@Inject(APP_CONFIG) config: AppConfig) {
+    super();
+    this.from = parseAddress(config.MAIL_FROM);
+    this.auth = Buffer.from(
+      `${config.MAILJET_API_KEY}:${config.MAILJET_SECRET_KEY}`,
+    ).toString('base64');
+  }
+
+  async send(message: MailMessage): Promise<void> {
+    const res = await fetch('https://api.mailjet.com/v3.1/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${this.auth}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        Messages: [
+          {
+            From: this.from,
+            To: [{ Email: message.to }],
+            Subject: message.subject,
+            TextPart: message.text,
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) {
+      // Mailjet explains rejections (e.g. unverified sender) in the body.
+      const detail = (await res.text()).slice(0, 500);
+      throw new Error(`Mailjet responded ${res.status}: ${detail}`);
+    }
+    this.logger.log({ to: message.to, subject: message.subject }, 'Email sent');
+  }
+}
+
+/** "Casino <a@b.c>" or "a@b.c" → Mailjet's {Email, Name}. */
+export function parseAddress(value: string): { Email: string; Name?: string } {
+  const match = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(value);
+  if (!match) return { Email: value.trim() };
+  const name = match[1].replace(/^"|"$/g, '').trim();
+  return name
+    ? { Email: match[2].trim(), Name: name }
+    : { Email: match[2].trim() };
 }
 
 export class InMemoryMailer extends Mailer {

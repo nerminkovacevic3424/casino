@@ -51,11 +51,16 @@ export const envSchema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   COOKIE_SECURE: bool.default(false),
 
-  SMTP_HOST: z.string().min(1),
-  SMTP_PORT: z.coerce.number().int().positive(),
-  SMTP_FROM: z.string().min(3),
+  /** smtp: local Mailpit or any SMTP relay. mailjet: HTTPS API (hosts that block SMTP ports, e.g. Render free). */
+  MAIL_PROVIDER: z.enum(['smtp', 'mailjet']).default('smtp'),
+  /** Sender, e.g. "Casino <you@example.com>". SMTP_FROM is accepted as the old name. */
+  MAIL_FROM: z.string().min(3),
+  SMTP_HOST: z.string().min(1).optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
+  MAILJET_API_KEY: z.string().min(1).optional(),
+  MAILJET_SECRET_KEY: z.string().min(1).optional(),
 
   /** Built Angular app to serve from the same origin (production single-service deploys). */
   WEB_DIST_DIR: z.string().min(1).optional(),
@@ -75,6 +80,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = envSchema.safeParse({
     ...env,
     PORT: env['API_PORT'] ?? env['PORT'],
+    MAIL_FROM: env['MAIL_FROM'] ?? env['SMTP_FROM'],
   });
   if (!parsed.success) {
     const problems = parsed.error.issues
@@ -83,6 +89,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new Error(`Invalid environment configuration:\n${problems}`);
   }
   const config = parsed.data;
+  const missing = (keys: (keyof AppConfig)[]) =>
+    keys.filter((k) => config[k] === undefined);
+  const mailMissing =
+    config.MAIL_PROVIDER === 'mailjet'
+      ? missing(['MAILJET_API_KEY', 'MAILJET_SECRET_KEY'])
+      : missing(['SMTP_HOST', 'SMTP_PORT']);
+  if (mailMissing.length > 0) {
+    const lines = mailMissing.map(
+      (k) => `  - ${k}: required when MAIL_PROVIDER=${config.MAIL_PROVIDER}`,
+    );
+    throw new Error(`Invalid environment configuration:\n${lines.join('\n')}`);
+  }
   if (config.NODE_ENV === 'production') {
     const problems: string[] = [];
     for (const key of ['JWT_ACCESS_SECRET', 'CSRF_SECRET'] as const) {

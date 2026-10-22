@@ -16,7 +16,7 @@ export function testConfig(
     TOTP_ENCRYPTION_KEY: 'ab'.repeat(32),
     SMTP_HOST: 'localhost',
     SMTP_PORT: '1025',
-    SMTP_FROM: 'Casino <no-reply@casino.test>',
+    MAIL_FROM: 'Casino <no-reply@casino.test>',
     SIGNUP_BONUS: '100000',
     DAILY_BONUS: '10000',
     ...overrides,
