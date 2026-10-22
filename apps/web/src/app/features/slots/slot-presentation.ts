@@ -1,7 +1,10 @@
 import type {
   LinesRoundResult,
   LinesSlotConfig,
+  SlotConfig,
   SlotRoundResult,
+  WaysRoundResult,
+  WaysSlotConfig,
 } from '@casino/game-engine';
 import { formatCredits } from '@casino/ui';
 
@@ -28,14 +31,22 @@ export function countUpMs(
   return turbo ? base / 3 : base;
 }
 
-const symbolName = (config: LinesSlotConfig, id: string) =>
+const symbolName = (config: SlotConfig, id: string) =>
   config.symbols.find((s) => s.id === id)?.name ?? id;
 
-/** Screen-reader text for what the reels show, row by row. */
+/** Screen-reader text for what the reels show: row by row for fixed grids, reel by reel for ways games. */
 export function describeGrid(
-  config: LinesSlotConfig,
+  config: SlotConfig,
   grid: readonly (readonly string[])[],
 ): string {
+  if (config.kind === 'ways') {
+    return grid
+      .map((column, reel) => {
+        const names = column.map((id) => symbolName(config, id)).join(', ');
+        return $localize`:@@slot.describe.reel:Reel ${reel + 1}:reel:: ${names}:names:`;
+      })
+      .join('. ');
+  }
   const rows: string[] = [];
   for (let row = 0; row < config.rows; row++) {
     const names = grid
@@ -46,6 +57,24 @@ export function describeGrid(
     );
   }
   return rows.join('. ');
+}
+
+/** Outcome of a cascading ways round for the live region. */
+export function describeWaysOutcome(
+  config: WaysSlotConfig,
+  result: WaysRoundResult,
+  locale = 'en-US',
+): string {
+  if (result.totalWin === 0) return $localize`:@@slot.describe.noWin:No win.`;
+  const winning = result.cascades.filter((c) => c.wins.length > 0);
+  const symbols = [
+    ...new Set(
+      winning.flatMap((c) => c.wins.map((w) => symbolName(config, w.symbol))),
+    ),
+  ].join(', ');
+  const amount = formatCredits(result.totalWin, locale);
+  const cascades = winning.length;
+  return $localize`:@@slot.describe.ways:You won ${amount}:amount: credits over ${cascades}:cascades: cascades with ${symbols}:symbols:.`;
 }
 
 /** One-sentence summary of a round's outcome for the live region. */

@@ -1,0 +1,240 @@
+<div class="page roulette">
+  <header class="head">
+    <a class="btn btn--ghost btn--small" routerLink="/" i18n="@@slot.back"
+      >← Lobby</a
+    >
+    <h1 i18n="@@roulette.title">European Roulette</h1>
+    <span class="rtp" i18n="@@roulette.rtp">Single zero · RTP 97.30%</span>
+  </header>
+
+  <div class="top">
+    <div class="wheel-wrap">
+      <div #wheel class="wheel"></div>
+      @if (result(); as r) {
+      <div
+        class="result result--{{ r.color }}"
+        aria-hidden="true"
+        animate.enter="fade-in"
+      >
+        <span class="result__number">{{ r.number }}</span>
+        @if (lastPayout() > 0) {
+        <span class="result__win" i18n="@@roulette.won"
+          >Won {{ lastPayout() | credits }}</span
+        >
+        }
+      </div>
+      }
+    </div>
+
+    <aside class="side">
+      <section aria-labelledby="hist-title">
+        <h2 id="hist-title" class="label" i18n="@@roulette.history">
+          Last numbers
+        </h2>
+        <ol
+          class="history"
+          i18n-aria-label="@@roulette.historyList"
+          aria-label="Most recent first"
+        >
+          @for (n of history(); track $index) {
+          <li class="pocket pocket--{{ colourOf(n) }}">{{ n }}</li>
+          } @empty {
+          <li class="muted" i18n="@@roulette.noHistory">No spins yet</li>
+          }
+        </ol>
+      </section>
+      @if (history().length > 0) {
+      <section class="stats" aria-labelledby="stats-title">
+        <h2 id="stats-title" class="label" i18n="@@roulette.hotCold">
+          Hot &amp; cold
+        </h2>
+        <p>
+          <span class="muted" i18n="@@roulette.hot">Hot:</span>
+          @for (h of stats().hot; track h.number) {
+          <span class="pocket pocket--{{ colourOf(h.number) }} small"
+            >{{ h.number }}</span
+          >
+          }
+        </p>
+        <p>
+          <span class="muted" i18n="@@roulette.cold">Cold:</span>
+          @for (c of stats().cold; track c.number) {
+          <span class="pocket pocket--{{ colourOf(c.number) }} small"
+            >{{ c.number }}</span
+          >
+          }
+        </p>
+        <p class="muted small-text" i18n="@@roulette.statsNote">
+          Red {{ stats().red }} · Black {{ stats().black }} · Zero {{
+          stats().green }}. Past spins never affect the next one.
+        </p>
+      </section>
+      }
+    </aside>
+  </div>
+
+  <section
+    class="controls"
+    i18n-aria-label="@@roulette.chips"
+    aria-label="Chips and bet controls"
+  >
+    <div
+      class="chips"
+      role="radiogroup"
+      i18n-aria-label="@@roulette.chipValue"
+      aria-label="Chip value"
+    >
+      @for (c of chips; track c) {
+      <button
+        type="button"
+        class="chip"
+        role="radio"
+        [attr.aria-checked]="chip() === c"
+        [class.chip--active]="chip() === c"
+        (click)="chip.set(c)"
+        [attr.aria-label]="(c | credits) + ' chip'"
+      >
+        {{ chipLabel(c) }}
+      </button>
+      }
+    </div>
+    <div class="actions">
+      <button
+        type="button"
+        class="btn btn--small"
+        (click)="undo()"
+        [disabled]="!canUndo()"
+        i18n="@@roulette.undo"
+      >
+        Undo
+      </button>
+      <button
+        type="button"
+        class="btn btn--small"
+        (click)="clear()"
+        [disabled]="slip().size === 0 || spinning()"
+        i18n="@@roulette.clear"
+      >
+        Clear
+      </button>
+      <button
+        type="button"
+        class="btn btn--small"
+        (click)="rebet()"
+        [disabled]="!canRebet()"
+        i18n="@@roulette.rebet"
+      >
+        Rebet
+      </button>
+      <button
+        type="button"
+        class="btn btn--small"
+        (click)="double()"
+        [disabled]="slip().size === 0 || spinning()"
+        i18n="@@roulette.double"
+      >
+        Double
+      </button>
+    </div>
+    <div class="total">
+      <span class="label" i18n="@@roulette.totalBet">Total bet</span>
+      <strong data-testid="roulette-total">{{ total() | credits }}</strong>
+      <span class="label" i18n="@@slot.balance">Balance</span>
+      <strong>{{ wallet.balance() | credits }}</strong>
+    </div>
+    <button
+      type="button"
+      class="btn btn--primary spin"
+      (click)="spin()"
+      [disabled]="!canSpin()"
+      data-testid="roulette-spin"
+      i18n="@@roulette.spin"
+    >
+      Spin
+    </button>
+  </section>
+
+  <div class="felt-scroll">
+    <div
+      class="felt"
+      role="group"
+      i18n-aria-label="@@roulette.table"
+      aria-label="Betting table"
+      [attr.aria-disabled]="spinning()"
+    >
+      @for (s of spots; track s.key) {
+      <button
+        type="button"
+        class="spot spot--{{ s.kind }}"
+        [class.spot--red]="s.kind === 'number' && colourOf(s.covers[0]) === 'red'"
+        [class.spot--black]="s.kind === 'number' && colourOf(s.covers[0]) === 'black'"
+        [class.spot--lit]="s.kind === 'number' || s.kind === 'zero' ? hover().includes(s.covers[0]) : false"
+        [class.spot--winner]="result()?.number === s.covers[0] && (s.kind === 'number' || s.kind === 'zero')"
+        [style.grid-column]="s.kind === 'zero' ? '1 / span 1' : s.gridColumn"
+        [style.grid-row]="s.kind === 'zero' ? '1 / span 5' : s.gridRow"
+        [attr.aria-label]="s.label + (amountOn(s.key) ? ', ' + (amountOn(s.key) | credits) + ' placed' : '')"
+        [disabled]="spinning()"
+        (click)="place(s.spec, s.label)"
+        (mouseenter)="hover.set(s.covers)"
+        (mouseleave)="hover.set([])"
+        (focus)="hover.set(s.covers)"
+        (blur)="hover.set([])"
+      >
+        @if (s.kind === 'number' || s.kind === 'zero') {
+        <span class="spot__label">{{ s.covers[0] }}</span>
+        } @else if (s.kind === 'column') {
+        <span class="spot__label" i18n="@@roulette.twoToOne">2 to 1</span>
+        } @if (amountOn(s.key); as amount) {
+        <span class="stack" aria-hidden="true">{{ amount | credits }}</span>
+        }
+      </button>
+      }
+    </div>
+
+    <div class="outside">
+      @for (o of outside; track o.key) {
+      <button
+        type="button"
+        class="spot spot--outside"
+        [class.spot--red]="o.spec.type === 'red'"
+        [class.spot--black]="o.spec.type === 'black'"
+        [attr.aria-label]="o.label + (amountOn(o.key) ? ', ' + (amountOn(o.key) | credits) + ' placed' : '')"
+        [disabled]="spinning()"
+        (click)="place(o.spec, o.label)"
+        (mouseenter)="hover.set(o.covers)"
+        (mouseleave)="hover.set([])"
+        (focus)="hover.set(o.covers)"
+        (blur)="hover.set([])"
+      >
+        <span class="spot__label">{{ o.label }}</span>
+        @if (amountOn(o.key); as amount) {
+        <span class="stack" aria-hidden="true">{{ amount | credits }}</span>
+        }
+      </button>
+      }
+    </div>
+  </div>
+
+  <section class="racetrack" aria-labelledby="race-title">
+    <h2 id="race-title" class="label" i18n="@@roulette.racetrack">
+      Announced bets
+    </h2>
+    <div class="race-buttons">
+      @for (r of racetrack; track r.name) {
+      <button
+        type="button"
+        class="btn btn--small"
+        (click)="placeRacetrack(r.name)"
+        [disabled]="spinning()"
+      >
+        {{ r.label }}
+      </button>
+      }
+    </div>
+    <p class="muted small-text" i18n="@@roulette.limits">
+      Limits: chips from {{ limits.minChip | credits }}, inside bets up to {{
+      limits.maxInside | credits }}, outside up to {{ limits.maxOutside |
+      credits }}, total {{ limits.maxTotal | credits }}.
+    </p>
+  </section>
+</div>

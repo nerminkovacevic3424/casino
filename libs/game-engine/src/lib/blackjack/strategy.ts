@@ -1,3 +1,4 @@
+import type { Card } from '../cards/cards';
 import { BlackjackAction, BlackjackState, legalActions } from './blackjack';
 import { cardValue, handValue } from './hand';
 
@@ -51,19 +52,28 @@ export type StrategyHint = Exclude<BlackjackAction, 'insurance'>;
 
 /** The basic-strategy move for the active hand, restricted to legal actions. */
 export function strategyHint(state: BlackjackState): StrategyHint | null {
-  const legal = legalActions(state);
   if (state.phase === 'insurance') return 'no-insurance'; // insurance is a losing bet
+  const legal = legalActions(state);
   if (legal.length === 0) return null;
+  return basicStrategy(state.hands[state.active].cards, state.dealer[0], legal);
+}
 
-  const hand = state.hands[state.active];
-  const col = UP.indexOf(cardValue(state.dealer[0]) as (typeof UP)[number]);
-  const { total, soft } = handValue(hand.cards);
+/**
+ * Basic strategy from what the player can see: their cards, the dealer's
+ * up card and the actions currently allowed. Usable from the client view.
+ */
+export function basicStrategy(
+  cards: readonly Card[],
+  dealerUp: Card,
+  legal: readonly BlackjackAction[],
+): Exclude<StrategyHint, 'no-insurance'> {
+  const col = UP.indexOf(cardValue(dealerUp) as (typeof UP)[number]);
+  const { total, soft } = handValue(cards);
 
   let code: Code;
   const pairValue =
-    hand.cards.length === 2 &&
-    cardValue(hand.cards[0]) === cardValue(hand.cards[1])
-      ? cardValue(hand.cards[0])
+    cards.length === 2 && cardValue(cards[0]) === cardValue(cards[1])
+      ? cardValue(cards[0])
       : null;
   if (pairValue !== null && PAIRS[pairValue] && legal.includes('split')) {
     code = PAIRS[pairValue][col];

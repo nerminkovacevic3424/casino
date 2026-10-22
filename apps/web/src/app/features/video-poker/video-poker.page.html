@@ -1,0 +1,156 @@
+<div class="page vp">
+  <header class="head">
+    <a class="btn btn--ghost btn--small" routerLink="/" i18n="@@slot.back"
+      >← Lobby</a
+    >
+    <h1 i18n="@@vp.title">Jacks or Better</h1>
+    <span class="muted" i18n="@@vp.rtp"
+      >9/6 · RTP 99.54% with perfect play</span
+    >
+  </header>
+
+  <div class="paytable-wrap">
+    <table class="paytable">
+      <caption class="visually-hidden" i18n="@@vp.paytable">
+        Paytable (coins paid per hand)
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col" i18n="@@vp.hand">Hand</th>
+          @for (c of coinCounts; track c) {
+          <th scope="col" [class.current]="c === coins()">{{ c }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (rank of ranks; track rank) {
+        <tr
+          [class.winner]="view()?.phase === 'settled' && view()?.rank === rank"
+        >
+          <th scope="row">{{ rankName(rank) }}</th>
+          @for (c of coinCounts; track c) {
+          <td [class.current]="c === coins()">{{ paytable[rank][c - 1] }}</td>
+          }
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <section
+    class="hand"
+    tabindex="0"
+    (keydown)="onHandKey($event)"
+    i18n-aria-label="@@vp.handLabel"
+    aria-label="Your hand. Press 1 to 5 to hold cards."
+  >
+    @if (view(); as v) { @for (card of v.hand; track $index; let i = $index) {
+    <button
+      type="button"
+      class="card-slot"
+      [class.held]="held()[i] && v.phase === 'dealt'"
+      [attr.aria-pressed]="v.phase === 'dealt' ? held()[i] : null"
+      [disabled]="v.phase !== 'dealt' || busy()"
+      (click)="toggleHold(i)"
+      [attr.data-testid]="'vp-card-' + i"
+    >
+      <span
+        class="hold-tag"
+        [class.visible]="held()[i] && v.phase === 'dealt'"
+        i18n="@@vp.held"
+        >HELD</span
+      >
+      <cas-playing-card [card]="card" animate.enter="deal-in" />
+    </button>
+    } } @else { @for (i of [0, 1, 2, 3, 4]; track i) {
+    <div class="card-slot"><cas-playing-card /></div>
+    } }
+  </section>
+
+  @if (view(); as v) {
+  <p class="result" aria-hidden="true">
+    @if (v.phase === 'settled' && v.rank) {
+    <strong [class.win]="v.payout > 0">{{ rankName(v.rank) }}</strong>
+    @if (v.payout > 0) { · {{ v.payout | credits }} } } @else if (v.phase ===
+    'dealt' && v.rank && v.rank !== 'nothing') {
+    <span class="muted" i18n="@@vp.dealtRank"
+      >Dealt: {{ rankName(v.rank) }}</span
+    >
+    }
+  </p>
+  }
+
+  <section
+    class="controls"
+    i18n-aria-label="@@vp.controls"
+    aria-label="Bet and play"
+  >
+    <div class="field">
+      <label for="vp-coin" i18n="@@vp.coinValue">Coin value</label>
+      <select
+        id="vp-coin"
+        [value]="coinValue()"
+        (change)="coinValue.set(+$any($event.target).value)"
+        [disabled]="dealt()"
+      >
+        @for (v of coinValues; track v) {
+        <option [value]="v">{{ v | credits }}</option>
+        }
+      </select>
+    </div>
+    <div
+      class="coins"
+      role="radiogroup"
+      i18n-aria-label="@@vp.coins"
+      aria-label="Coins"
+    >
+      @for (c of coinCounts; track c) {
+      <button
+        type="button"
+        class="btn btn--small"
+        role="radio"
+        [attr.aria-checked]="coins() === c"
+        [class.selected]="coins() === c"
+        [disabled]="dealt()"
+        (click)="coins.set(c)"
+      >
+        {{ c }}
+      </button>
+      }
+    </div>
+    <p class="bet">
+      <span class="muted" i18n="@@vp.bet">Bet</span>
+      <strong>{{ bet() | credits }}</strong>
+    </p>
+    @if (dealt()) {
+    <button
+      type="button"
+      class="btn btn--primary go"
+      (click)="draw()"
+      [disabled]="busy()"
+      data-testid="vp-draw"
+      i18n="@@vp.draw"
+    >
+      Draw
+    </button>
+    } @else {
+    <button
+      type="button"
+      class="btn btn--primary go"
+      (click)="deal()"
+      [disabled]="!canDeal()"
+      data-testid="vp-deal"
+      i18n="@@vp.deal"
+    >
+      Deal
+    </button>
+    }
+    <p class="bet">
+      <span class="muted" i18n="@@slot.balance">Balance</span>
+      <strong>{{ wallet.balance() | credits }}</strong>
+    </p>
+  </section>
+  <p class="muted small" i18n="@@vp.tip">
+    Five coins unlock the 4,000-coin royal flush bonus.
+  </p>
+</div>

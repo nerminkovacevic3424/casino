@@ -1,0 +1,155 @@
+<div class="page blackjack">
+  <header class="head">
+    <a class="btn btn--ghost btn--small" routerLink="/" i18n="@@slot.back"
+      >← Lobby</a
+    >
+    <h1 i18n="@@bj.title">Blackjack</h1>
+    <label class="hint-toggle">
+      <input
+        type="checkbox"
+        [checked]="showHint()"
+        (change)="showHint.set($any($event.target).checked)"
+      />
+      <span i18n="@@bj.hintToggle">Strategy hints</span>
+    </label>
+  </header>
+
+  <p class="rules" i18n="@@bj.rules">
+    {{ rules.decks }} decks · dealer stands on soft 17 · blackjack pays 3:2 ·
+    insurance pays 2:1 · double on any two cards · split up to {{ rules.maxHands
+    }} hands
+  </p>
+
+  <section
+    class="table"
+    i18n-aria-label="@@bj.table"
+    aria-label="Blackjack table"
+  >
+    <div class="dealer">
+      <h2 class="label">
+        <span i18n="@@bj.dealer">Dealer</span>
+        @if (view()?.dealerTotal; as total) {
+        <span class="total">{{ total }}</span>
+        }
+      </h2>
+      <div class="cards">
+        @for (card of view()?.dealer ?? []; track $index) {
+        <cas-playing-card [card]="card" animate.enter="deal-in" />
+        }
+      </div>
+    </div>
+
+    <div class="hands">
+      @for (hand of view()?.hands ?? []; track $index; let i = $index) {
+      <div
+        class="hand"
+        [class.hand--active]="view()?.phase === 'player' && view()?.active === i"
+        [attr.aria-current]="view()?.phase === 'player' && view()?.active === i ? 'true' : null"
+      >
+        <h2 class="label">
+          <span i18n="@@bj.hand">Hand {{ i + 1 }}</span>
+          <span class="total"
+            >{{ hand.soft && hand.total < 21 ? 'soft ' : '' }}{{ hand.total
+            }}</span
+          >
+          <span class="stake"
+            >{{ hand.bet | credits }}{{ hand.doubled ? ' ×2' : '' }}</span
+          >
+        </h2>
+        <div class="cards">
+          @for (card of hand.cards; track $index) {
+          <cas-playing-card [card]="card" animate.enter="deal-in" />
+          }
+        </div>
+        @if (hand.outcome) {
+        <p class="outcome outcome--{{ hand.outcome }}">
+          {{ outcomeLabel(hand.outcome) }} @if (hand.payout > 0) { · {{
+          hand.payout | credits }} }
+        </p>
+        }
+      </div>
+      } @empty {
+      <p class="empty" i18n="@@bj.empty">Choose your bet and press Deal.</p>
+      }
+    </div>
+
+    @if (view()?.insurance?.taken) {
+    <p class="insurance">
+      <span i18n="@@bj.insuranceTaken"
+        >Insurance: {{ view()!.insurance.bet | credits }}</span
+      >
+      @if (view()!.insurance.payout > 0) {
+      <span i18n="@@bj.insurancePaid">
+        — paid {{ view()!.insurance.payout | credits }}</span
+      >
+      }
+    </p>
+    }
+  </section>
+
+  <section
+    class="controls"
+    i18n-aria-label="@@bj.controls"
+    aria-label="Your moves"
+  >
+    @if (inPlay()) {
+    <div class="moves">
+      @for (action of view()!.legalActions; track action) {
+      <button
+        type="button"
+        class="btn"
+        [class.btn--primary]="hint() === action"
+        [disabled]="busy() || (actionCost(action) > 0 && (wallet.balance() ?? 0) < actionCost(action))"
+        (click)="act(action)"
+        [attr.data-testid]="'bj-' + action"
+      >
+        {{ actionLabel(action) }} @if (actionCost(action) > 0) {
+        <small>+{{ actionCost(action) | credits }}</small>
+        }
+      </button>
+      }
+    </div>
+    @if (hint(); as h) {
+    <p class="hint" role="status" i18n="@@bj.hint">
+      Basic strategy suggests: {{ actionLabel(h) }}
+    </p>
+    } } @else {
+    <div
+      class="bets"
+      role="radiogroup"
+      i18n-aria-label="@@bj.betSize"
+      aria-label="Bet size"
+    >
+      @for (b of betOptions; track b) {
+      <button
+        type="button"
+        class="btn btn--small"
+        role="radio"
+        [attr.aria-checked]="bet() === b"
+        [class.selected]="bet() === b"
+        (click)="setBet(b)"
+      >
+        {{ b | credits }}
+      </button>
+      }
+    </div>
+    <button
+      type="button"
+      class="btn btn--primary deal"
+      (click)="deal()"
+      [disabled]="!canDeal()"
+      data-testid="bj-deal"
+    >
+      @if (view()?.phase === 'settled') {
+      <ng-container i18n="@@bj.dealAgain">Deal again</ng-container>
+      } @else {
+      <ng-container i18n="@@bj.deal">Deal</ng-container>
+      }
+    </button>
+    }
+    <p class="balance">
+      <span class="label" i18n="@@slot.balance">Balance</span>
+      <strong>{{ wallet.balance() | credits }}</strong>
+    </p>
+  </section>
+</div>

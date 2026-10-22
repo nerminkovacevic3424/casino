@@ -37,6 +37,10 @@
       <div class="ribbon" aria-hidden="true" i18n="@@slot.freeSpinsLeft">
         Free spins: {{ freeSpinsLeft() }} left
       </div>
+      } @if (cascadeMultiplier(); as m) {
+      <div class="ribbon" aria-hidden="true" i18n="@@slot.multiplier">
+        Cascade multiplier ×{{ m }}
+      </div>
       } @if (banner(); as b) {
       <div
         class="banner banner--{{ b.tier }}"
@@ -189,6 +193,21 @@
       (cancelled)="autoplayOpen.set(false)"
     />
   </cas-ui-modal>
+
+  @if (bonus(); as b) {
+  <cas-ui-modal
+    i18n-heading="@@slot.bonusTitle"
+    heading="Treasure bonus"
+    [open]="true"
+    (closed)="finishBonus()"
+  >
+    <cas-bonus-pick
+      [picks]="b.picks"
+      [boxCount]="b.boxes"
+      (done)="finishBonus()"
+    />
+  </cas-ui-modal>
+  }
 </div>
 } @else {
 <section class="page">

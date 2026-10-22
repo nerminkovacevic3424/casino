@@ -1,0 +1,151 @@
+@use 'mixins' as m;
+
+.head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+
+  h1 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    text-align: center;
+  }
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.small {
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.paytable-wrap {
+  overflow-x: auto;
+}
+
+.paytable {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1a1f6b;
+  border: 3px solid var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-sm);
+
+  th,
+  td {
+    padding: 4px var(--space-3);
+    text-align: right;
+    color: #ffe48a;
+  }
+
+  th[scope='row'] {
+    text-align: left;
+  }
+
+  .current {
+    background: rgb(255 255 255 / 12%);
+  }
+
+  .winner {
+    background: var(--color-primary);
+
+    th,
+    td {
+      color: var(--color-on-primary);
+    }
+  }
+}
+
+.hand {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 var(--space-2);
+  padding: var(--space-4) var(--space-2);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(120% 140% at 50% 0%, #1f2a7a, #0f1440);
+  --card-width: clamp(54px, 16vw, 110px);
+}
+
+.card-slot {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out);
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &.held {
+    transform: translateY(-10px);
+  }
+}
+
+.hold-tag {
+  visibility: hidden;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+
+  &.visible {
+    visibility: visible;
+  }
+}
+
+.result {
+  min-height: 1.6em;
+  text-align: center;
+  font-size: var(--font-size-lg);
+
+  .win {
+    color: var(--color-success);
+  }
+}
+
+.controls {
+  @include m.card;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+
+  .field {
+    margin: 0;
+  }
+}
+
+.coins {
+  display: flex;
+  gap: var(--space-1);
+
+  .selected {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+}
+
+.bet {
+  margin: 0;
+  display: grid;
+  font-variant-numeric: tabular-nums;
+}
+
+.go {
+  min-width: 160px;
+  min-height: 56px;
+  font-size: var(--font-size-lg);
+}

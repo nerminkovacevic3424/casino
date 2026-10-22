@@ -23,6 +23,31 @@ export const appRoutes: Route[] = [
       import('./features/wallet/wallet.page').then((m) => m.WalletPage),
   },
   {
+    path: 'games/roulette',
+    canActivate: [authGuard],
+    title: $localize`:@@title.roulette:European Roulette · Casino`,
+    loadComponent: () =>
+      import('./features/roulette/roulette.page').then((m) => m.RoulettePage),
+  },
+  {
+    path: 'games/blackjack',
+    canActivate: [authGuard],
+    title: $localize`:@@title.blackjack:Blackjack · Casino`,
+    loadComponent: () =>
+      import('./features/blackjack/blackjack.page').then(
+        (m) => m.BlackjackPage,
+      ),
+  },
+  {
+    path: 'games/video-poker',
+    canActivate: [authGuard],
+    title: $localize`:@@title.videoPoker:Jacks or Better · Casino`,
+    loadComponent: () =>
+      import('./features/video-poker/video-poker.page').then(
+        (m) => m.VideoPokerPage,
+      ),
+  },
+  {
     path: 'games/slots/:gameId',
     canActivate: [authGuard],
     loadComponent: () =>

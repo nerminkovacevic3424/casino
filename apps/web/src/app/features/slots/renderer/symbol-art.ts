@@ -184,6 +184,13 @@ const PAINTERS: Record<string, Painter> = {
   DIAMOND: gem(0xcfefff, 0xffffff),
   STAR: emoji('⭐', 0x3a2f6b, 0x1a1540),
   CHEST: chest,
+  // Temple Tumble
+  NINE: label('9', 0xb7c4ff, 0x3a2e1a, 0x1d170d),
+  SCARAB: emoji('🪲', 0x1f5a4a, 0x0d2a22),
+  ANKH: label('☥', 0xf5c542, 0x4a3a12, 0x241c08, 0.62),
+  EYE: emoji('👁️', 0x1f3a6b, 0x0d1a33),
+  FALCON: emoji('🦅', 0x6b4a1f, 0x33230f),
+  MASK: emoji('🎭', 0x7a5a12, 0x3d2d09),
 };
 
 export function paintSymbol(id: string, size: number): Container {

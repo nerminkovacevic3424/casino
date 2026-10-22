@@ -11,6 +11,9 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   SLOT_CONFIGS,
+  cardCode,
+  type BlackjackAction,
+  type RouletteBet,
   type LinesRoundResult,
   type RoundInput,
   type RoundReplay,
@@ -54,6 +57,12 @@ export class VerifyPage implements OnInit {
   private readonly toasts = inject(ToastService);
 
   protected readonly slotIds = Object.keys(SLOT_CONFIGS);
+  protected readonly gameIds = [
+    ...this.slotIds,
+    'roulette',
+    'blackjack',
+    'video-poker',
+  ];
   protected readonly active = signal<FairnessState | null>(null);
   protected readonly record = signal<RoundDetail | null>(null);
   protected readonly result = signal<Verification | null>(null);
@@ -71,7 +80,10 @@ export class VerifyPage implements OnInit {
     nonce: [0, [Validators.required, Validators.min(0)]],
     gameId: [this.slotIds[0], Validators.required],
     totalBet: [100, [Validators.required, Validators.min(1)]],
+    /** JSON round input for table and card games (bets, actions, holds). */
+    inputJson: [''],
   });
+  protected readonly isSlot = signal(true);
   protected readonly rotateForm = inject(FormBuilder).nonNullable.group({
     clientSeed: [
       '',
@@ -85,6 +97,37 @@ export class VerifyPage implements OnInit {
       ? (replay.result as LinesRoundResult).base.grid
       : null;
   });
+
+  /** One-line description of a replayed table or card game. */
+  protected readonly summary = computed(() => {
+    const replay = this.result()?.replay;
+    if (!replay) return '';
+    switch (replay.game) {
+      case 'roulette':
+        return $localize`:@@verify.sumRoulette:Winning number ${replay.result.number}:n: (${replay.result.color}:colour:)`;
+      case 'blackjack': {
+        const dealer = replay.result.dealer
+          .map((c) => (c ? cardCode(c) : '?'))
+          .join(' ');
+        const hands = replay.result.hands
+          .map(
+            (h) => h.cards.map(cardCode).join(' ') + ' → ' + (h.outcome ?? ''),
+          )
+          .join('; ');
+        return $localize`:@@verify.sumBlackjack:Dealer ${dealer}:dealer:. Player ${hands}:hands:`;
+      }
+      case 'video-poker':
+        return $localize`:@@verify.sumVp:Final hand ${replay.result.hand.map(cardCode).join(' ')}:hand: (${replay.result.rank}:rank:)`;
+      default:
+        return '';
+    }
+  });
+
+  constructor() {
+    this.form.controls.gameId.valueChanges.subscribe((id) =>
+      this.isSlot.set(this.slotIds.includes(id)),
+    );
+  }
 
   async ngOnInit(): Promise<void> {
     if (this.auth.status() !== 'anonymous') {
@@ -101,7 +144,9 @@ export class VerifyPage implements OnInit {
       );
       this.record.set(detail);
       const input = detail.input as { totalBet?: number };
+      this.isSlot.set(this.slotIds.includes(detail.gameId));
       this.form.patchValue({
+        inputJson: JSON.stringify(detail.input),
         serverSeed: detail.fairness.serverSeed ?? '',
         serverSeedHash: detail.fairness.serverSeedHash,
         clientSeed: detail.fairness.clientSeed,
@@ -121,12 +166,12 @@ export class VerifyPage implements OnInit {
     this.result.set(null);
     if (this.form.invalid) return;
     const v = this.form.getRawValue();
-    const roundInput: RoundInput = {
-      game: 'slot',
-      gameId: v.gameId,
-      totalBet: Number(v.totalBet),
-    };
     try {
+      const roundInput = this.roundInput(
+        v.gameId,
+        Number(v.totalBet),
+        v.inputJson,
+      );
       const replay = replayRound(
         {
           serverSeed: v.serverSeed,
@@ -148,6 +193,42 @@ export class VerifyPage implements OnInit {
       });
     } catch (err) {
       this.error.set((err as Error).message);
+    }
+  }
+
+  private roundInput(
+    gameId: string,
+    totalBet: number,
+    json: string,
+  ): RoundInput {
+    if (this.slotIds.includes(gameId))
+      return { game: 'slot', gameId, totalBet };
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(json) as Record<string, unknown>;
+    } catch {
+      throw new Error(
+        $localize`:@@verify.badJson:The round input must be valid JSON.`,
+      );
+    }
+    switch (gameId) {
+      case 'roulette':
+        return { game: 'roulette', bets: parsed['bets'] as RouletteBet[] };
+      case 'blackjack':
+        return {
+          game: 'blackjack',
+          bet: Number(parsed['bet']),
+          actions: (parsed['actions'] ?? []) as BlackjackAction[],
+        };
+      case 'video-poker':
+        return {
+          game: 'video-poker',
+          coins: Number(parsed['coins']),
+          coinValue: Number(parsed['coinValue']),
+          held: (parsed['held'] ?? []) as boolean[],
+        };
+      default:
+        throw new Error($localize`:@@verify.unknownGame:Unknown game.`);
     }
   }
 

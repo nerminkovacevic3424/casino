@@ -73,11 +73,12 @@
           <div class="field">
             <label for="v-game" i18n="@@verify.game">Game</label>
             <select id="v-game" formControlName="gameId">
-              @for (id of slotIds; track id) {
+              @for (id of gameIds; track id) {
               <option [value]="id">{{ id }}</option>
               }
             </select>
           </div>
+          @if (isSlot()) {
           <div class="field">
             <label for="v-bet" i18n="@@verify.bet"
               >Total bet (minor units)</label
@@ -89,7 +90,27 @@
               formControlName="totalBet"
             />
           </div>
+          }
         </div>
+        @if (!isSlot()) {
+        <div class="field">
+          <label for="v-input" i18n="@@verify.inputJson"
+            >Round input (JSON: bets, actions or holds)</label
+          >
+          <textarea
+            id="v-input"
+            rows="4"
+            formControlName="inputJson"
+            spellcheck="false"
+            class="mono"
+            aria-describedby="v-input-hint"
+          ></textarea>
+          <span id="v-input-hint" class="hint" i18n="@@verify.inputHint"
+            >Filled in automatically when you open a round from your
+            history.</span
+          >
+        </div>
+        }
         <button
           class="btn btn--primary"
           type="submit"
@@ -147,7 +168,9 @@
           {{ res.replay.totalPayout | credits }}
         </dd>
       </dl>
-      @if (grid(); as g) {
+      @if (summary()) {
+      <p class="summary" data-testid="verify-summary">{{ summary() }}</p>
+      } @if (grid(); as g) {
       <table class="grid">
         <caption i18n="@@verify.gridCaption">
           Base-game reels

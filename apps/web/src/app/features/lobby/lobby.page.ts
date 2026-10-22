@@ -12,7 +12,14 @@ import { firstValueFrom } from 'rxjs';
 import { AuthStore } from '../../core/auth.store';
 
 /** Games with a finished client. The rest are listed as "coming soon". */
-export const PLAYABLE_GAMES: ReadonlySet<string> = new Set(['classic-3-reel']);
+export const PLAYABLE_GAMES: ReadonlySet<string> = new Set([
+  'classic-3-reel',
+  'video-5-reel',
+  'megaways',
+  'roulette',
+  'blackjack',
+  'video-poker',
+]);
 
 const ICONS: Record<string, string> = {
   'classic-3-reel': '🍒',

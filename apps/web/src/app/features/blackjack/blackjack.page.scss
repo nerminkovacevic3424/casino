@@ -1,0 +1,169 @@
+@use 'mixins' as m;
+
+.head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+
+  h1 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    text-align: center;
+  }
+}
+
+.hint-toggle {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--font-size-sm);
+
+  input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--color-primary);
+  }
+}
+
+.rules {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.label {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #d9e7dd;
+}
+
+.total {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 35%);
+  color: #fff;
+  letter-spacing: 0;
+}
+
+.stake {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.table {
+  display: grid;
+  gap: var(--space-6);
+  min-height: 380px;
+  padding: var(--space-5);
+  border-radius: 200px 200px var(--radius-lg) var(--radius-lg) / 120px 120px
+    var(--radius-lg) var(--radius-lg);
+  background: radial-gradient(120% 140% at 50% 0%, #17734e, #0b4a31);
+  border: 6px solid #6b4a1f;
+  --card-width: clamp(56px, 13vw, 92px);
+}
+
+.dealer {
+  justify-self: center;
+  text-align: center;
+}
+
+.cards {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+  min-height: calc(var(--card-width) * 1.4);
+}
+
+.hands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  justify-content: center;
+}
+
+.hand {
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+
+  &--active {
+    border-color: var(--color-primary);
+    background: rgb(245 197 66 / 8%);
+  }
+}
+
+.outcome {
+  margin: var(--space-2) 0 0;
+  text-align: center;
+  font-weight: var(--font-weight-bold);
+
+  &--win,
+  &--blackjack {
+    color: var(--color-success);
+  }
+  &--lose {
+    color: #ffc2c8;
+  }
+  &--push {
+    color: #fff;
+  }
+}
+
+.empty,
+.insurance {
+  color: #d9e7dd;
+  text-align: center;
+}
+
+.controls {
+  @include m.card;
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+}
+
+.moves,
+.bets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: center;
+
+  small {
+    font-weight: var(--font-weight-regular);
+  }
+}
+
+.bets .selected {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.deal {
+  min-width: 200px;
+  min-height: 56px;
+  font-size: var(--font-size-lg);
+}
+
+.hint {
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.balance {
+  margin: 0;
+  color: var(--color-text-muted);
+
+  strong {
+    color: var(--color-text);
+  }
+}

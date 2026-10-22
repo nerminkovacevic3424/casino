@@ -4,7 +4,11 @@ import {
   computed,
   input,
 } from '@angular/core';
-import type { LinesSlotConfig } from '@casino/game-engine';
+import type {
+  LinesSlotConfig,
+  SlotConfig,
+  WaysSlotConfig,
+} from '@casino/game-engine';
 import { CreditsPipe } from '@casino/ui';
 
 interface PayRow {
@@ -20,10 +24,20 @@ interface PayRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p class="intro">
-      <ng-container i18n="@@paytable.intro">
-        Line wins pay left to right on adjacent reels, highest win per line
-        only. Pays are shown for the current bet of
-      </ng-container>
+      @if (ways(); as wc) {
+        <ng-container i18n="@@paytable.waysIntro">
+          Wins pay for matching symbols on adjacent reels from the left,
+          multiplied by the number of ways (matching symbols per reel multiplied
+          together). Winning symbols tumble away, new ones fall in and every
+          cascade raises the multiplier by {{ wc.multiplierStep }}. Pays per way
+          are shown for the current bet of
+        </ng-container>
+      } @else {
+        <ng-container i18n="@@paytable.intro">
+          Line wins pay left to right on adjacent reels, highest win per line
+          only. Pays are shown for the current bet of
+        </ng-container>
+      }
       <strong>{{ totalBet() | credits }}</strong
       >.
     </p>
@@ -55,27 +69,6 @@ interface PayRow {
       </tbody>
     </table>
 
-    @if (config().scatter; as scatter) {
-      <h3 i18n="@@paytable.scatterTitle">Scatter</h3>
-      <p i18n="@@paytable.scatter">
-        Scatters pay anywhere on the reels, as a multiple of the total bet.
-      </p>
-      @if (scatter.freeSpins; as fs) {
-        <p i18n="@@paytable.freeSpins">
-          {{ fs.minCount }} or more scatters award {{ fs.spins }} free spins
-          with all wins ×{{ fs.multiplier }}. Free spins can retrigger (+{{
-            fs.retriggerSpins
-          }}, up to {{ fs.maxTotalSpins }}).
-        </p>
-      }
-    }
-    @if (config().pickBonus; as bonus) {
-      <h3 i18n="@@paytable.bonusTitle">Bonus game</h3>
-      <p i18n="@@paytable.bonus">
-        A bonus symbol on reels {{ bonusReels() }} starts the pick-me bonus:
-        open boxes to collect prizes until you find “Collect”.
-      </p>
-    }
     @if (wildName(); as wild) {
       <p i18n="@@paytable.wild">
         {{ wild }} substitutes for every symbol except scatters and bonus
@@ -83,33 +76,56 @@ interface PayRow {
       </p>
     }
 
-    <h3 i18n="@@paytable.lines">Paylines ({{ config().paylines.length }})</h3>
-    <ol class="lines">
-      @for (line of config().paylines; track $index) {
-        <li>
-          <svg
-            [attr.viewBox]="
-              '0 0 ' + config().reels.length * 10 + ' ' + config().rows * 10
-            "
-            role="img"
-            [attr.aria-label]="lineLabel($index, line)"
-          >
-            @for (row of rowsArray(); track row) {
-              @for (reel of reelsArray(); track reel) {
-                <rect
-                  [attr.x]="reel * 10 + 1"
-                  [attr.y]="row * 10 + 1"
-                  width="8"
-                  height="8"
-                  rx="2"
-                  [class.on]="line[reel] === row"
-                />
-              }
-            }
-          </svg>
-        </li>
+    @if (lines(); as lc) {
+      @if (lc.scatter; as scatter) {
+        <h3 i18n="@@paytable.scatterTitle">Scatter</h3>
+        <p i18n="@@paytable.scatter">
+          Scatters pay anywhere on the reels, as a multiple of the total bet.
+        </p>
+        @if (scatter.freeSpins; as fs) {
+          <p i18n="@@paytable.freeSpins">
+            {{ fs.minCount }} or more scatters award {{ fs.spins }} free spins
+            with all wins ×{{ fs.multiplier }}. Free spins can retrigger (+{{
+              fs.retriggerSpins
+            }}, up to {{ fs.maxTotalSpins }}).
+          </p>
+        }
       }
-    </ol>
+      @if (lc.pickBonus; as bonus) {
+        <h3 i18n="@@paytable.bonusTitle">Bonus game</h3>
+        <p i18n="@@paytable.bonus">
+          A bonus symbol on reels {{ bonusReels() }} starts the pick-me bonus:
+          open boxes to collect prizes until you find “Collect”.
+        </p>
+      }
+      <h3 i18n="@@paytable.lines">Paylines ({{ lc.paylines.length }})</h3>
+      <ol class="lines">
+        @for (line of lc.paylines; track $index) {
+          <li>
+            <svg
+              [attr.viewBox]="
+                '0 0 ' + lc.reels.length * 10 + ' ' + lc.rows * 10
+              "
+              role="img"
+              [attr.aria-label]="lineLabel($index, line)"
+            >
+              @for (row of rowsArray(); track row) {
+                @for (reel of reelsArray(); track reel) {
+                  <rect
+                    [attr.x]="reel * 10 + 1"
+                    [attr.y]="row * 10 + 1"
+                    width="8"
+                    height="8"
+                    rx="2"
+                    [class.on]="line[reel] === row"
+                  />
+                }
+              }
+            </svg>
+          </li>
+        }
+      </ol>
+    }
 
     <p class="rtp" i18n="@@paytable.rtp">
       Theoretical return to player:
@@ -162,7 +178,15 @@ interface PayRow {
   `,
 })
 export class PaytableComponent {
-  readonly config = input.required<LinesSlotConfig>();
+  readonly config = input.required<SlotConfig>();
+  protected readonly lines = computed<LinesSlotConfig | null>(() => {
+    const c = this.config();
+    return c.kind === 'lines' ? c : null;
+  });
+  protected readonly ways = computed<WaysSlotConfig | null>(() => {
+    const c = this.config();
+    return c.kind === 'ways' ? c : null;
+  });
   readonly totalBet = input.required<number>();
 
   protected readonly rows = computed<PayRow[]>(() => {
@@ -191,12 +215,12 @@ export class PaytableComponent {
   );
   protected readonly bonusReels = computed(
     () =>
-      this.config()
-        .pickBonus?.triggerReels.map((r) => r + 1)
+      this.lines()
+        ?.pickBonus?.triggerReels.map((r) => r + 1)
         .join(', ') ?? '',
   );
   protected readonly rowsArray = computed(() =>
-    Array.from({ length: this.config().rows }, (_, i) => i),
+    Array.from({ length: this.lines()?.rows ?? 0 }, (_, i) => i),
   );
   protected readonly reelsArray = computed(() =>
     Array.from({ length: this.config().reels.length }, (_, i) => i),
