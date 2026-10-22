@@ -52,7 +52,7 @@ export const envSchema = z.object({
   COOKIE_SECURE: bool.default(false),
 
   /** smtp: local Mailpit or any SMTP relay. mailjet: HTTPS API (hosts that block SMTP ports, e.g. Render free). */
-  MAIL_PROVIDER: z.enum(['smtp', 'mailjet']).default('smtp'),
+  MAIL_PROVIDER: z.enum(['smtp', 'mailjet', 'gmail']).default('smtp'),
   /** Sender, e.g. "Casino <you@example.com>". SMTP_FROM is accepted as the old name. */
   MAIL_FROM: z.string().min(3),
   SMTP_HOST: z.string().min(1).optional(),
@@ -61,6 +61,10 @@ export const envSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   MAILJET_API_KEY: z.string().min(1).optional(),
   MAILJET_SECRET_KEY: z.string().min(1).optional(),
+  /** Gmail API (OAuth): sends as your own Gmail address. See DEPLOY.md. */
+  GMAIL_CLIENT_ID: z.string().min(1).optional(),
+  GMAIL_CLIENT_SECRET: z.string().min(1).optional(),
+  GMAIL_REFRESH_TOKEN: z.string().min(1).optional(),
 
   /** Built Angular app to serve from the same origin (production single-service deploys). */
   WEB_DIST_DIR: z.string().min(1).optional(),
@@ -91,10 +95,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const config = parsed.data;
   const missing = (keys: (keyof AppConfig)[]) =>
     keys.filter((k) => config[k] === undefined);
-  const mailMissing =
-    config.MAIL_PROVIDER === 'mailjet'
-      ? missing(['MAILJET_API_KEY', 'MAILJET_SECRET_KEY'])
-      : missing(['SMTP_HOST', 'SMTP_PORT']);
+  const mailRequired: Record<AppConfig['MAIL_PROVIDER'], (keyof AppConfig)[]> =
+    {
+      smtp: ['SMTP_HOST', 'SMTP_PORT'],
+      mailjet: ['MAILJET_API_KEY', 'MAILJET_SECRET_KEY'],
+      gmail: ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'],
+    };
+  const mailMissing = missing(mailRequired[config.MAIL_PROVIDER]);
   if (mailMissing.length > 0) {
     const lines = mailMissing.map(
       (k) => `  - ${k}: required when MAIL_PROVIDER=${config.MAIL_PROVIDER}`,

@@ -29,14 +29,16 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
-      # Render's free plan blocks SMTP ports, so email goes through Mailjet's HTTPS API.
+      # Render's free plan blocks SMTP ports, so email goes through the Gmail API (HTTPS).
       - key: MAIL_PROVIDER
-        value: mailjet
-      - key: MAILJET_API_KEY
+        value: gmail
+      - key: GMAIL_CLIENT_ID
         sync: false
-      - key: MAILJET_SECRET_KEY
+      - key: GMAIL_CLIENT_SECRET
         sync: false
-      # e.g. "Casino <you@gmail.com>"; must be a sender address verified in Mailjet.
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      # e.g. "Casino <you@gmail.com>"; must be the Gmail account that granted the token.
       - key: MAIL_FROM
         sync: false
       - key: ADMIN_EMAIL
