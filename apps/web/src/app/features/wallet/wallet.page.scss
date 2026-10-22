@@ -1,0 +1,79 @@
+@use 'mixins' as m;
+
+.summary {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+
+  @include m.up(md) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.amount {
+  margin: 0;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.filters {
+  display: grid;
+  gap: 0 var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+th {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.num {
+  text-align: right;
+}
+
+.positive {
+  color: var(--color-success);
+}
+
+.negative {
+  color: var(--color-danger);
+}
+
+.pager {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-4);
+}

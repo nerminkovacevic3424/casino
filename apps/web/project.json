@@ -21,20 +21,25 @@
             "input": "apps/web/public"
           }
         ],
-        "styles": ["apps/web/src/styles.scss"]
+        "styles": ["apps/web/src/styles.scss"],
+        "polyfills": ["@angular/localize/init"],
+        "stylePreprocessorOptions": {
+          "includePaths": ["libs/ui/src/styles"]
+        },
+        "allowedCommonJsDependencies": ["howler", "@xmldom/xmldom"]
       },
       "configurations": {
         "production": {
           "budgets": [
             {
               "type": "initial",
-              "maximumWarning": "500kb",
+              "maximumWarning": "600kb",
               "maximumError": "1mb"
             },
             {
               "type": "anyComponentStyle",
-              "maximumWarning": "4kb",
-              "maximumError": "8kb"
+              "maximumWarning": "6kb",
+              "maximumError": "12kb"
             }
           ],
           "outputHashing": "all"
@@ -57,6 +62,10 @@
         "development": {
           "buildTarget": "web:build:development"
         }
+      },
+      "options": {
+        "proxyConfig": "apps/web/proxy.conf.json",
+        "port": 4200
       }
     },
     "lint": {

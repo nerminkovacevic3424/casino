@@ -34,6 +34,7 @@ export class RealtimeGateway implements OnGatewayConnection {
       const user = await this.tokens.verifyAccess(token);
       socket.data['userId'] = user.id;
       await socket.join(userRoom(user.id));
+      socket.emit('ready');
     } catch {
       socket.emit('unauthorized');
       socket.disconnect(true);

@@ -1,2 +1,136 @@
-<cas-nx-welcome></cas-nx-welcome>
-<router-outlet></router-outlet>
+<a
+  class="skip-link"
+  href="#main"
+  (click)="focusMain($event)"
+  i18n="@@shell.skip"
+  >Skip to main content</a
+>
+
+<header class="header">
+  <div class="header__inner">
+    <a
+      class="brand"
+      routerLink="/"
+      i18n-aria-label="@@shell.home"
+      aria-label="Casino home"
+    >
+      <span class="brand__mark" aria-hidden="true">♠</span>
+      <span class="brand__name">Casino</span>
+    </a>
+
+    <nav class="nav" i18n-aria-label="@@shell.mainNav" aria-label="Main">
+      <a
+        routerLink="/"
+        routerLinkActive="is-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        i18n="@@nav.lobby"
+        >Lobby</a
+      >
+      @if (auth.isAuthenticated()) {
+      <a routerLink="/wallet" routerLinkActive="is-active" i18n="@@nav.wallet"
+        >Wallet</a
+      >
+      }
+      <a routerLink="/verify" routerLinkActive="is-active" i18n="@@nav.verify"
+        >Verify</a
+      >
+    </nav>
+
+    <div class="header__actions">
+      <button
+        type="button"
+        class="btn btn--ghost btn--small icon-btn"
+        [attr.aria-pressed]="prefs.muted()"
+        (click)="prefs.toggleMute()"
+        i18n-aria-label="@@shell.mute"
+        aria-label="Mute sound"
+      >
+        <span aria-hidden="true">{{ prefs.muted() ? '🔇' : '🔊' }}</span>
+      </button>
+
+      @switch (auth.status()) { @case ('authenticated') {
+      <a
+        class="balance"
+        routerLink="/wallet"
+        i18n-title="@@shell.balanceTitle"
+        title="Balance — open wallet"
+      >
+        <span class="visually-hidden" i18n="@@shell.balance">Balance:</span>
+        <span class="balance__coin" aria-hidden="true">◎</span>
+        <span class="balance__value" data-testid="balance"
+          >{{ wallet.balance() | credits }}</span
+        >
+      </a>
+      <button
+        type="button"
+        class="btn btn--small"
+        (click)="logout()"
+        i18n="@@shell.signOut"
+      >
+        Sign out
+      </button>
+      } @case ('anonymous') {
+      <a
+        class="btn btn--ghost btn--small"
+        routerLink="/auth/login"
+        i18n="@@shell.signIn"
+        >Sign in</a
+      >
+      <a
+        class="btn btn--primary btn--small"
+        routerLink="/auth/register"
+        i18n="@@shell.join"
+        >Join</a
+      >
+      } }
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <router-outlet />
+</main>
+
+<footer class="footer">
+  <p>
+    <strong class="age-badge" aria-hidden="true">18+</strong>
+    <span i18n="@@shell.footer">
+      Play for fun with virtual credits only — they have no cash value. Every
+      result is provably fair.
+    </span>
+  </p>
+</footer>
+
+<!-- App-wide live regions: game results and errors are announced here. -->
+<div class="visually-hidden" aria-live="polite" aria-atomic="true">
+  {{ announcer.polite() }}
+</div>
+<div class="visually-hidden" aria-live="assertive" aria-atomic="true">
+  {{ announcer.assertive() }}
+</div>
+
+<ol
+  class="toasts"
+  i18n-aria-label="@@shell.notifications"
+  aria-label="Notifications"
+>
+  @for (toast of toasts.toasts(); track toast.id) {
+  <li
+    class="toast toast--{{ toast.kind }}"
+    [attr.role]="toast.kind === 'error' ? 'alert' : 'status'"
+    animate.enter="fade-in"
+    animate.leave="fade-out"
+  >
+    <span>{{ toast.message }}</span>
+    <button
+      type="button"
+      class="btn btn--ghost btn--small"
+      (click)="toasts.dismiss(toast.id)"
+      i18n-aria-label="@@toast.dismiss"
+      aria-label="Dismiss"
+    >
+      ✕
+    </button>
+  </li>
+  }
+</ol>

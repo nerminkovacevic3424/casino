@@ -1,0 +1,93 @@
+// Design tokens. Every colour pair used for text meets WCAG 2.1 AA (4.5:1 for
+// body text, 3:1 for large text and UI components) on the surfaces listed.
+
+:root {
+  color-scheme: dark;
+
+  // ---------------------------------------------------------------- colour
+  --color-bg: #0b0f1a;
+  --color-surface: #141a2b;
+  --color-surface-2: #1c2440;
+  --color-surface-3: #26305a;
+  --color-border: #34406e;
+  --color-border-strong: #5a6aa8;
+
+  --color-text: #f2f4fb; // 16.9:1 on bg
+  --color-text-muted: #aab3d0; // 8.6:1 on bg, 7.4:1 on surface
+  --color-text-inverse: #0b0f1a;
+
+  --color-primary: #f5c542; // gold — 11.8:1 on bg
+  --color-primary-hover: #ffd766;
+  --color-on-primary: #1a1300; // 11.9:1 on primary
+  --color-accent: #8b7bff; // 5.6:1 on bg
+  --color-success: #3ddc97; // 10.4:1 on bg
+  --color-danger: #ff6b7a; // 6.3:1 on bg
+  --color-warning: #ffb547;
+  --color-info: #6cc4ff;
+
+  --color-red-pocket: #d63447; // roulette red: 4.6:1 with white text
+  --color-black-pocket: #1d1f27;
+  --color-green-pocket: #11845b; // 4.6:1 with white text
+
+  --color-focus: #ffd766;
+
+  // ---------------------------------------------------------------- type
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-mono:
+    ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+  --font-size-3xl: clamp(2rem, 6vw, 3.25rem);
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 750;
+  --line-height: 1.5;
+
+  // ---------------------------------------------------------------- spacing & shape
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --shadow-1: 0 2px 8px rgb(0 0 0 / 35%);
+  --shadow-2: 0 10px 30px rgb(0 0 0 / 45%);
+  --tap-target: 44px; // WCAG 2.5.5 target size
+
+  // ---------------------------------------------------------------- layout
+  --content-max: 1200px;
+  --header-height: 64px;
+
+  // ---------------------------------------------------------------- motion
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 220ms;
+  --duration-slow: 420ms;
+}
+
+// System preference, unless the player explicitly turned animations back on.
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}
+
+// In-app "reduce motion" preference.
+:root[data-motion='reduced'] {
+  --duration-fast: 0ms;
+  --duration-base: 0ms;
+  --duration-slow: 0ms;
+}

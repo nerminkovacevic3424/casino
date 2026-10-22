@@ -1,0 +1,171 @@
+<div class="page">
+  <h1 i18n="@@wallet.title">Wallet</h1>
+
+  <div class="summary">
+    <section class="card balance-card" aria-labelledby="balance-heading">
+      <h2 id="balance-heading" class="label" i18n="@@wallet.balance">
+        Balance
+      </h2>
+      <p class="amount" data-testid="wallet-balance">
+        {{ wallet.balance() | credits }}
+      </p>
+      <p class="muted" i18n="@@wallet.virtual">
+        Virtual credits for entertainment only.
+      </p>
+    </section>
+
+    <section class="card" aria-labelledby="bonus-heading">
+      <h2 id="bonus-heading" class="label" i18n="@@wallet.dailyBonus">
+        Daily bonus
+      </h2>
+      @if (auth.user()?.emailVerified) { @if (wallet.summary(); as summary) {
+      <p>
+        <span i18n="@@wallet.bonusAmount"
+          >+{{ summary.dailyBonusAmount | credits }} free credits every 24
+          hours.</span
+        >
+      </p>
+      @if (summary.canClaimDailyBonus) {
+      <button
+        type="button"
+        class="btn btn--primary"
+        (click)="claim()"
+        [disabled]="claiming()"
+        i18n="@@wallet.claim"
+      >
+        Claim daily bonus
+      </button>
+      } @else {
+      <p class="muted" i18n="@@wallet.nextBonus">
+        Next bonus available {{ summary.nextDailyBonusAt | date: 'medium' }}.
+      </p>
+      } } } @else {
+      <p i18n="@@wallet.verifyFirst">
+        Confirm your email address to unlock the daily bonus.
+      </p>
+      @if (resent()) {
+      <p class="muted" role="status" i18n="@@wallet.resent">
+        Check your inbox for a new verification link.
+      </p>
+      } @else {
+      <button
+        type="button"
+        class="btn"
+        (click)="resend()"
+        i18n="@@wallet.resend"
+      >
+        Resend verification email
+      </button>
+      } }
+    </section>
+  </div>
+
+  <section class="card history" aria-labelledby="history-heading">
+    <h2 id="history-heading" i18n="@@wallet.history">Transaction history</h2>
+
+    <form class="filters" (submit)="$event.preventDefault()">
+      <div class="field">
+        <label for="filter-type" i18n="@@wallet.filterType">Type</label>
+        <select
+          id="filter-type"
+          [value]="type()"
+          (change)="type.set($any($event.target).value)"
+        >
+          @for (option of types; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-from" i18n="@@wallet.filterFrom">From</label>
+        <input
+          id="filter-from"
+          type="date"
+          [value]="from()"
+          (change)="from.set($any($event.target).value)"
+        />
+      </div>
+      <div class="field">
+        <label for="filter-to" i18n="@@wallet.filterTo">To</label>
+        <input
+          id="filter-to"
+          type="date"
+          [value]="to()"
+          (change)="to.set($any($event.target).value)"
+        />
+      </div>
+    </form>
+
+    @if (history.error()) {
+    <div class="alert alert--error" role="alert" i18n="@@wallet.historyError">
+      Could not load your transactions.
+    </div>
+    }
+
+    <div class="table-wrap" [attr.aria-busy]="history.isLoading()">
+      <table>
+        <caption class="visually-hidden" i18n="@@wallet.caption">
+          Your transactions, newest first
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col" i18n="@@wallet.col.date">Date</th>
+            <th scope="col" i18n="@@wallet.col.type">Type</th>
+            <th scope="col" class="num" i18n="@@wallet.col.amount">Amount</th>
+            <th scope="col" class="num" i18n="@@wallet.col.balance">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of history.value()?.items ?? []; track item.id) {
+          <tr>
+            <td>{{ item.createdAt | date: 'short' }}</td>
+            <td>{{ typeLabel(item.type) }}</td>
+            <td
+              class="num"
+              [class.positive]="item.amount > 0"
+              [class.negative]="item.amount < 0"
+            >
+              {{ item.amount > 0 ? '+' : '' }}{{ item.amount | credits }}
+            </td>
+            <td class="num">{{ item.balanceAfter | credits }}</td>
+          </tr>
+          } @empty { @if (!history.isLoading()) {
+          <tr>
+            <td colspan="4" class="muted" i18n="@@wallet.empty">
+              No transactions match these filters.
+            </td>
+          </tr>
+          } }
+        </tbody>
+      </table>
+    </div>
+
+    <nav
+      class="pager"
+      i18n-aria-label="@@wallet.pagination"
+      aria-label="Pagination"
+    >
+      <button
+        type="button"
+        class="btn btn--small"
+        [disabled]="page() <= 1"
+        (click)="page.set(page() - 1)"
+        i18n="@@pager.prev"
+      >
+        Previous
+      </button>
+      <span aria-live="polite" i18n="@@pager.status"
+        >Page {{ page() }} of {{ pageCount() }}</span
+      >
+      <button
+        type="button"
+        class="btn btn--small"
+        [disabled]="page() >= pageCount()"
+        (click)="page.set(page() + 1)"
+        i18n="@@pager.next"
+      >
+        Next
+      </button>
+    </nav>
+  </section>
+</div>

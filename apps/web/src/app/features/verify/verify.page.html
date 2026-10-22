@@ -1,0 +1,217 @@
+<div class="page">
+  <h1 i18n="@@verify.title">Verify a bet</h1>
+  <p class="lead" i18n="@@verify.lead">
+    Every result comes from HMAC-SHA256(server seed, “client seed:nonce:round”).
+    Before you bet, we publish the SHA-256 hash of the server seed; when you
+    rotate seeds, the old server seed is revealed so you can recompute any round
+    right here in your browser.
+  </p>
+
+  <div class="layout">
+    <section class="card" aria-labelledby="verify-form-title">
+      <h2 id="verify-form-title" i18n="@@verify.formTitle">
+        Recompute a round
+      </h2>
+
+      @if (record(); as r) { @if (!r.fairness.serverSeed) {
+      <div class="alert alert--info" role="status" i18n="@@verify.notRevealed">
+        The server seed for this round is still in use, so it is secret. Rotate
+        your seeds below to reveal it.
+      </div>
+      } } @if (error()) {
+      <div class="alert alert--error" role="alert">{{ error() }}</div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="verify()" novalidate>
+        <div class="field">
+          <label for="v-server" i18n="@@verify.serverSeed"
+            >Server seed (revealed)</label
+          >
+          <input
+            id="v-server"
+            formControlName="serverSeed"
+            spellcheck="false"
+            autocomplete="off"
+            class="mono"
+          />
+        </div>
+        <div class="field">
+          <label for="v-hash" i18n="@@verify.hash"
+            >Server seed hash (published before betting, optional)</label
+          >
+          <input
+            id="v-hash"
+            formControlName="serverSeedHash"
+            spellcheck="false"
+            autocomplete="off"
+            class="mono"
+          />
+          @if (computedHash()) {
+          <span class="hint"
+            ><span i18n="@@verify.computedHash">SHA-256 of the seed:</span>
+            <code>{{ computedHash() }}</code></span
+          >
+          }
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="v-client" i18n="@@verify.clientSeed">Client seed</label>
+            <input
+              id="v-client"
+              formControlName="clientSeed"
+              spellcheck="false"
+              autocomplete="off"
+              class="mono"
+            />
+          </div>
+          <div class="field">
+            <label for="v-nonce" i18n="@@verify.nonce">Nonce</label>
+            <input id="v-nonce" type="number" min="0" formControlName="nonce" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="v-game" i18n="@@verify.game">Game</label>
+            <select id="v-game" formControlName="gameId">
+              @for (id of slotIds; track id) {
+              <option [value]="id">{{ id }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="v-bet" i18n="@@verify.bet"
+              >Total bet (minor units)</label
+            >
+            <input
+              id="v-bet"
+              type="number"
+              min="1"
+              formControlName="totalBet"
+            />
+          </div>
+        </div>
+        <button
+          class="btn btn--primary"
+          type="submit"
+          data-testid="verify-submit"
+          i18n="@@verify.submit"
+        >
+          Verify
+        </button>
+      </form>
+    </section>
+
+    <section
+      class="card"
+      aria-labelledby="verify-result-title"
+      aria-live="polite"
+    >
+      <h2 id="verify-result-title" i18n="@@verify.resultTitle">Result</h2>
+      @if (result(); as res) {
+      <ul class="checks">
+        @if (res.commitmentOk !== null) {
+        <li [class.ok]="res.commitmentOk" [class.bad]="!res.commitmentOk">
+          @if (res.commitmentOk) {
+          <span i18n="@@verify.commitOk"
+            >✓ The server seed matches the hash published before betting.</span
+          >
+          } @else {
+          <span i18n="@@verify.commitBad"
+            >✗ The server seed does NOT match the published hash.</span
+          >
+          }
+        </li>
+        } @if (res.matchesRecord !== null) {
+        <li
+          [class.ok]="res.matchesRecord"
+          [class.bad]="!res.matchesRecord"
+          data-testid="verify-match"
+        >
+          @if (res.matchesRecord) {
+          <span i18n="@@verify.recordOk"
+            >✓ The recomputed payout matches the recorded round.</span
+          >
+          } @else {
+          <span i18n="@@verify.recordBad"
+            >✗ The recomputed payout differs from the recorded round.</span
+          >
+          }
+        </li>
+        }
+      </ul>
+      <dl class="facts">
+        <dt i18n="@@verify.stake">Stake</dt>
+        <dd>{{ res.replay.totalBet | credits }}</dd>
+        <dt i18n="@@verify.payout">Payout</dt>
+        <dd data-testid="verify-payout">
+          {{ res.replay.totalPayout | credits }}
+        </dd>
+      </dl>
+      @if (grid(); as g) {
+      <table class="grid">
+        <caption i18n="@@verify.gridCaption">
+          Base-game reels
+        </caption>
+        <tbody>
+          @for (row of g[0]; track $index; let r = $index) {
+          <tr>
+            @for (column of g; track $index) {
+            <td>{{ column[r] }}</td>
+            }
+          </tr>
+          }
+        </tbody>
+      </table>
+      } } @else {
+      <p class="muted" i18n="@@verify.empty">
+        Enter the seeds and press Verify.
+      </p>
+      }
+    </section>
+  </div>
+
+  @if (auth.isAuthenticated()) {
+  <section class="card seeds" aria-labelledby="seeds-title">
+    <h2 id="seeds-title" i18n="@@verify.seedsTitle">Your seeds</h2>
+    @if (active(); as a) {
+    <dl class="facts">
+      <dt i18n="@@verify.activeHash">Active server seed hash</dt>
+      <dd><code>{{ a.serverSeedHash }}</code></dd>
+      <dt i18n="@@verify.activeClient">Client seed</dt>
+      <dd><code>{{ a.clientSeed }}</code></dd>
+      <dt i18n="@@verify.nextNonce">Next nonce</dt>
+      <dd>{{ a.nextNonce }}</dd>
+    </dl>
+    } @if (lastRevealed(); as rev) {
+    <div class="alert alert--success">
+      <span i18n="@@verify.revealed"
+        >Revealed server seed ({{ rev.roundsPlayed }} rounds):</span
+      >
+      <code class="break">{{ rev.serverSeed }}</code>
+    </div>
+    }
+    <form [formGroup]="rotateForm" (ngSubmit)="rotate()" class="row">
+      <div class="field">
+        <label for="r-client" i18n="@@verify.newClient"
+          >New client seed (optional)</label
+        >
+        <input
+          id="r-client"
+          formControlName="clientSeed"
+          spellcheck="false"
+          autocomplete="off"
+          class="mono"
+        />
+      </div>
+      <button
+        class="btn"
+        type="submit"
+        [disabled]="rotating() || rotateForm.invalid"
+        i18n="@@verify.rotate"
+      >
+        Rotate seeds &amp; reveal
+      </button>
+    </form>
+  </section>
+  }
+</div>

@@ -1,0 +1,203 @@
+@if (config(); as cfg) {
+<div class="slot page">
+  <header class="slot__head">
+    <a class="btn btn--ghost btn--small" routerLink="/" i18n="@@slot.back"
+      >← Lobby</a
+    >
+    <h1>{{ cfg.name }}</h1>
+    <button
+      type="button"
+      class="btn btn--small"
+      (click)="paytableOpen.set(true)"
+      i18n="@@slot.paytable"
+    >
+      Paytable &amp; rules
+    </button>
+  </header>
+
+  <div class="slot__body">
+    <div class="stage-wrap">
+      <div
+        #stage
+        class="stage"
+        tabindex="0"
+        role="group"
+        aria-roledescription="slot machine"
+        [attr.aria-label]="cfg.name"
+        aria-describedby="slot-grid slot-keys"
+        [attr.aria-busy]="phase() !== 'idle'"
+        [style.aspect-ratio]="aspectRatio()"
+        (keydown.space)="onStageKey($event)"
+        (keydown.enter)="onStageKey($event)"
+        data-testid="slot-stage"
+      ></div>
+      <p id="slot-grid" class="visually-hidden">{{ gridDescription() }}</p>
+
+      @if (freeSpinsLeft() !== null) {
+      <div class="ribbon" aria-hidden="true" i18n="@@slot.freeSpinsLeft">
+        Free spins: {{ freeSpinsLeft() }} left
+      </div>
+      } @if (banner(); as b) {
+      <div
+        class="banner banner--{{ b.tier }}"
+        aria-hidden="true"
+        animate.enter="banner-in"
+      >
+        <span class="banner__label">{{ b.label }}</span>
+        <span class="banner__value">{{ bannerValue() | credits }}</span>
+      </div>
+      }
+    </div>
+
+    <div
+      class="controls"
+      role="group"
+      i18n-aria-label="@@slot.controls"
+      aria-label="Spin controls"
+    >
+      <div class="readouts">
+        <div class="readout">
+          <span class="readout__label" i18n="@@slot.balance">Balance</span>
+          <span class="readout__value">{{ wallet.balance() | credits }}</span>
+        </div>
+        <div class="readout">
+          <span class="readout__label" i18n="@@slot.lastWin">Last win</span>
+          <span class="readout__value" data-testid="last-win"
+            >{{ lastWin() | credits }}</span
+          >
+        </div>
+      </div>
+
+      <div class="bet" role="group" aria-labelledby="bet-label">
+        <span id="bet-label" class="readout__label" i18n="@@slot.bet">Bet</span>
+        <button
+          type="button"
+          class="btn btn--small bet__step"
+          (click)="changeBet(-1)"
+          [disabled]="betIndex() === 0 || phase() !== 'idle' || autoplay() !== null"
+          i18n-aria-label="@@slot.betDown"
+          aria-label="Decrease bet"
+        >
+          −
+        </button>
+        <output class="bet__value" data-testid="bet" aria-live="off"
+          >{{ totalBet() | credits }}</output
+        >
+        <button
+          type="button"
+          class="btn btn--small bet__step"
+          (click)="changeBet(1)"
+          [disabled]="betIndex() >= cfg.betOptions.length - 1 || phase() !== 'idle' || autoplay() !== null"
+          i18n-aria-label="@@slot.betUp"
+          aria-label="Increase bet"
+        >
+          +
+        </button>
+      </div>
+
+      @if (autoplay(); as ap) {
+      <button
+        type="button"
+        class="btn spin spin--stop"
+        (click)="stopAutoplay()"
+        data-testid="stop-autoplay"
+      >
+        <span i18n="@@slot.stopAutoplay">Stop autoplay</span>
+        <small i18n="@@slot.autoplayProgress"
+          >{{ ap.played }} / {{ ap.settings.spins }}</small
+        >
+      </button>
+      } @else {
+      <button
+        type="button"
+        class="btn btn--primary spin"
+        (click)="spin()"
+        [disabled]="!canSpin()"
+        data-testid="spin"
+        i18n="@@slot.spin"
+      >
+        Spin
+      </button>
+      }
+
+      <div class="toggles">
+        <button
+          type="button"
+          class="btn btn--small"
+          (click)="autoplayOpen.set(true)"
+          [disabled]="phase() !== 'idle' || autoplay() !== null || !canAfford()"
+          i18n="@@slot.autoplay"
+        >
+          Autoplay
+        </button>
+        <button
+          type="button"
+          class="btn btn--small"
+          [attr.aria-pressed]="prefs.turbo()"
+          (click)="toggleTurbo()"
+          i18n="@@slot.turbo"
+        >
+          Turbo
+        </button>
+      </div>
+
+      @if (!canAfford() && phase() === 'idle') {
+      <p class="hint" role="status" i18n="@@slot.lowBalance">
+        Not enough credits for this bet. Lower the bet or claim your daily bonus
+        in the <a routerLink="/wallet">wallet</a>.
+      </p>
+      }
+    </div>
+  </div>
+
+  <p id="slot-keys" class="keys-hint" i18n="@@slot.keys">
+    Tip: focus the reels and press Space or Enter to spin.
+  </p>
+
+  @if (lastFairness(); as f) {
+  <p class="fairness">
+    <span i18n="@@slot.fairness"
+      >Last round: nonce {{ f.nonce }}, server seed hash</span
+    >
+    <code>{{ f.serverSeedHash.slice(0, 16) }}…</code>
+    <a
+      [routerLink]="['/verify']"
+      [queryParams]="{ round: lastRoundId() }"
+      i18n="@@slot.verify"
+      >Verify</a
+    >
+  </p>
+  }
+
+  <cas-ui-modal
+    [heading]="cfg.name"
+    [open]="paytableOpen()"
+    (closed)="paytableOpen.set(false)"
+  >
+    <cas-paytable [config]="cfg" [totalBet]="totalBet()" />
+  </cas-ui-modal>
+
+  <cas-ui-modal
+    i18n-heading="@@slot.autoplayTitle"
+    heading="Autoplay"
+    [open]="autoplayOpen()"
+    (closed)="autoplayOpen.set(false)"
+  >
+    <cas-autoplay-dialog
+      [totalBet]="totalBet()"
+      (start)="startAutoplay($event)"
+      (cancelled)="autoplayOpen.set(false)"
+    />
+  </cas-ui-modal>
+</div>
+} @else {
+<section class="page">
+  <h1 i18n="@@slot.unavailableTitle">Game not available</h1>
+  <p i18n="@@slot.unavailableBody">
+    This game does not exist or is not playable yet.
+  </p>
+  <a class="btn btn--primary" routerLink="/" i18n="@@slot.backLobby"
+    >Back to the lobby</a
+  >
+</section>
+}

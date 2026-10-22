@@ -65,7 +65,12 @@ export type AppConfig = z.infer<typeof envSchema>;
 
 /** Parses and validates the environment; throws a readable error listing every problem. */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const parsed = envSchema.safeParse(env);
+  // API_PORT keeps the shared .env from also moving other dev servers (Nx loads it for every task);
+  // plain PORT still works for platforms that inject it.
+  const parsed = envSchema.safeParse({
+    ...env,
+    PORT: env['API_PORT'] ?? env['PORT'],
+  });
   if (!parsed.success) {
     const problems = parsed.error.issues
       .map((i) => `  - ${i.path.join('.')}: ${i.message}`)

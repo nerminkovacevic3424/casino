@@ -297,11 +297,9 @@ describe('games (integration)', () => {
       );
       try {
         await new Promise<void>((resolve, reject) => {
-          socket.on('connect', () => resolve());
+          socket.on('ready', () => resolve());
           socket.on('connect_error', reject);
         });
-        // Let the server finish joining the room.
-        await new Promise((r) => setTimeout(r, 100));
         const received = new Promise<{ balance: number }>((resolve) =>
           socket.on('balance', resolve),
         );

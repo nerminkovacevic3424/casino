@@ -1,1 +1,205 @@
-/* You can add global styles to this file, and also import other style files */
+@use 'tokens';
+@use 'mixins' as m;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #1f2a55 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, #2b1f55 0%, transparent 55%),
+    var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  margin: 0 0 var(--space-4);
+}
+
+a {
+  color: var(--color-primary);
+}
+
+:focus-visible {
+  @include m.focus-ring;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.visually-hidden {
+  @include m.visually-hidden;
+}
+
+// ---------------------------------------------------------------- shared form & button styles
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-target);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-2);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--color-text);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    background: var(--color-surface-3);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &--primary {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+
+    &:hover:not(:disabled) {
+      background: var(--color-primary-hover);
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    border-color: transparent;
+  }
+
+  &--small {
+    min-height: 36px;
+    padding: 0 var(--space-4);
+    font-size: var(--font-size-sm);
+  }
+}
+
+.field {
+  display: grid;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+
+  label {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+  }
+
+  input,
+  select {
+    min-height: var(--tap-target);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-strong);
+    background: var(--color-bg);
+  }
+
+  input[aria-invalid='true'] {
+    border-color: var(--color-danger);
+  }
+
+  .hint {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+  }
+
+  .error {
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+  }
+}
+
+.checkbox {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+
+  input {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    accent-color: var(--color-primary);
+  }
+}
+
+.card {
+  @include m.card;
+  padding: var(--space-5);
+}
+
+.page {
+  width: min(100% - 2 * var(--space-4), var(--content-max));
+  margin-inline: auto;
+  padding-block: var(--space-5) var(--space-7);
+}
+
+.alert {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  margin-bottom: var(--space-4);
+
+  &--error {
+    border-color: var(--color-danger);
+    background: rgb(255 107 122 / 10%);
+  }
+
+  &--success {
+    border-color: var(--color-success);
+    background: rgb(61 220 151 / 10%);
+  }
+
+  &--info {
+    border-color: var(--color-info);
+    background: rgb(108 196 255 / 10%);
+  }
+}
+
+// Angular's animate.enter / animate.leave hooks.
+.fade-in {
+  animation: fade-in var(--duration-base) var(--ease-out);
+}
+
+.fade-out {
+  animation: fade-in var(--duration-fast) var(--ease-out) reverse;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}

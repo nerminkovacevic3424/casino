@@ -1,0 +1,30 @@
+:host {
+  display: block;
+}
+
+.auth {
+  width: min(100% - 2 * var(--space-4), 440px);
+  margin: var(--space-6) auto;
+}
+
+.auth h1 {
+  font-size: var(--font-size-2xl);
+}
+
+.auth .lead {
+  color: var(--color-text-muted);
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.auth .btn--primary {
+  width: 100%;
+}
+
+.auth .links {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  font-size: var(--font-size-sm);
+  flex-wrap: wrap;
+}
