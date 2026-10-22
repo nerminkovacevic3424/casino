@@ -14,4 +14,5 @@ export * from './lib/blackjack/blackjack';
 export * from './lib/blackjack/strategy';
 export * from './lib/video-poker/video-poker';
 export * from './lib/simulation/simulate';
+export * from './lib/jackpot';
 export * from './lib/verify';

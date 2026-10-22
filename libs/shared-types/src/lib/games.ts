@@ -100,6 +100,8 @@ export interface RoundResponse<R> {
   readonly fairness: FairnessInfo;
   /** True when this is a replay of an earlier request with the same Idempotency-Key. */
   readonly replayed: boolean;
+  /** Community jackpot won by this round (minor units), credited on top of the payout. */
+  readonly jackpot?: number;
 }
 
 export type SlotSpinResponse = RoundResponse<SlotRoundResult>;

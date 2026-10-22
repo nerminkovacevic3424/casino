@@ -14,6 +14,7 @@ import { FairnessService, nodeHmac } from '../fairness/fairness.service';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService, Tx } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { ResponsibleService } from '../responsible/responsible.service';
 import { WalletService } from '../wallet/wallet.service';
 import { GameSettingsService } from './game-settings.service';
 import { StepGame } from './step-games';
@@ -54,6 +55,7 @@ export class StepRoundsService {
     private readonly wallet: WalletService,
     private readonly settings: GameSettingsService,
     private readonly realtime: RealtimeGateway,
+    private readonly responsible: ResponsibleService,
   ) {}
 
   async open<S, V, I extends object>(
@@ -89,6 +91,8 @@ export class StepRoundsService {
         const state = engine(() =>
           game.replay(createFairRng(seed, nodeHmac), input),
         );
+        // Responsible-play checks after the per-player (seed) lock.
+        await this.responsible.assertCanBet(tx, userId, game.stake(state));
         const roundId = randomUUID();
         const settled = game.settled(state);
         const stake = game.stake(state);
@@ -201,6 +205,7 @@ export class StepRoundsService {
       const payout = settled ? game.payout(after) : 0;
       let balance: number | null = null;
       if (extraStake > 0) {
+        await this.responsible.assertCanBet(tx, userId, extraStake);
         ({ balance } = await this.wallet.applyEntry(tx, {
           userId,
           type: 'BET',

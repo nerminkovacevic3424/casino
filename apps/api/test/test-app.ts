@@ -96,6 +96,14 @@ export class ApiClient {
     return this.send('post', url, body);
   }
 
+  put(url: string, body?: object) {
+    return this.send('put', url, body);
+  }
+
+  delete(url: string) {
+    return this.send('delete', url);
+  }
+
   /** Raw request with explicit headers only (no cookies, CSRF or Origin). */
   raw(method: Method, url: string) {
     return request(this.app.getHttpServer())

@@ -71,6 +71,7 @@ export class SlotsController {
       idempotencyKey,
       input: { totalBet: dto.totalBet },
       stake: dto.totalBet,
+      jackpot: true,
       resolve: (rng) => {
         const result = playSlot(config, dto.totalBet, rng);
         return { payout: result.totalWin, result };

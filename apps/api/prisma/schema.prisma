@@ -21,30 +21,36 @@ enum UserStatus {
 }
 
 model User {
-  id               String     @id @default(uuid()) @db.Uuid
+  id                String     @id @default(uuid()) @db.Uuid
   /// Stored lower-cased and trimmed.
-  email            String     @unique
-  passwordHash     String     @map("password_hash")
-  displayName      String     @map("display_name")
-  dateOfBirth      DateTime   @map("date_of_birth") @db.Date
-  role             Role       @default(PLAYER)
-  status           UserStatus @default(ACTIVE)
-  emailVerifiedAt  DateTime?  @map("email_verified_at")
+  email             String     @unique
+  passwordHash      String     @map("password_hash")
+  displayName       String     @map("display_name")
+  dateOfBirth       DateTime   @map("date_of_birth") @db.Date
+  role              Role       @default(PLAYER)
+  status            UserStatus @default(ACTIVE)
+  emailVerifiedAt   DateTime?  @map("email_verified_at")
   /// AES-256-GCM encrypted base32 secret (iv.tag.ciphertext, base64url).
-  totpSecret       String?    @map("totp_secret")
-  totpEnabledAt    DateTime?  @map("totp_enabled_at")
+  totpSecret        String?    @map("totp_secret")
+  totpEnabledAt     DateTime?  @map("totp_enabled_at")
   /// Last accepted TOTP time step; codes at or before it are rejected (replay protection).
-  totpLastTimeStep Int?       @map("totp_last_time_step")
-  failedLogins     Int        @default(0) @map("failed_logins")
-  lockedUntil      DateTime?  @map("locked_until")
-  createdAt        DateTime   @default(now()) @map("created_at")
-  updatedAt        DateTime   @updatedAt @map("updated_at")
+  totpLastTimeStep  Int?       @map("totp_last_time_step")
+  failedLogins      Int        @default(0) @map("failed_logins")
+  lockedUntil       DateTime?  @map("locked_until")
+  /// Responsible play: no betting until this time (player-chosen break).
+  coolOffUntil      DateTime?  @map("cool_off_until")
+  /// Responsible play: account closed for play (and sign-in) until this time.
+  selfExcludedUntil DateTime?  @map("self_excluded_until")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
 
   wallet      Wallet?
   emailTokens EmailToken[]
   ledger      LedgerEntry[]
   seedPairs   SeedPair[]
   rounds      GameRound[]
+  limits      PlayerLimits?
+  favourites  Favourite[]
 
   @@map("users")
 }
@@ -71,6 +77,7 @@ enum LedgerType {
   WIN
   REFUND
   ADJUSTMENT
+  JACKPOT
 }
 
 /// Append-only: a trigger in the migration rejects UPDATE and DELETE.
@@ -184,4 +191,36 @@ model GameSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("game_settings")
+}
+
+/// Responsible-play limits (minor units / minutes). Lowering a limit applies
+/// at once; raising or removing one only after a 24-hour cooling period
+/// (the pending* fields), so it cannot be done on impulse.
+model PlayerLimits {
+  userId              String    @id @map("user_id") @db.Uuid
+  dailyLossLimit      BigInt?   @map("daily_loss_limit")
+  weeklyLossLimit     BigInt?   @map("weekly_loss_limit")
+  monthlyLossLimit    BigInt?   @map("monthly_loss_limit")
+  dailyWagerLimit     BigInt?   @map("daily_wager_limit")
+  sessionLimitMinutes Int?      @map("session_limit_minutes")
+  realityCheckMinutes Int?      @map("reality_check_minutes")
+  /// JSON of limit changes that loosen limits, applied at pendingEffectiveAt.
+  pending             Json?
+  pendingEffectiveAt  DateTime? @map("pending_effective_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_limits")
+}
+
+model Favourite {
+  userId    String   @map("user_id") @db.Uuid
+  gameId    String   @map("game_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, gameId])
+  @@map("favourites")
 }

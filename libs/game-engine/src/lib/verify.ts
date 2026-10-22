@@ -5,6 +5,7 @@ import {
   dealBlackjack,
   toPublicView,
 } from './blackjack/blackjack';
+import { rollJackpot } from './jackpot';
 import { Minor } from './money';
 import {
   RouletteBet,
@@ -45,6 +46,8 @@ export type RoundReplay =
       readonly totalBet: Minor;
       readonly totalPayout: Minor;
       readonly result: SlotRoundResult;
+      /** Whether this round triggered the community jackpot (amount comes from the pool). */
+      readonly jackpotHit: boolean;
     }
   | {
       readonly game: 'roulette';
@@ -83,6 +86,7 @@ export function replayRound(
         totalBet: result.totalBet,
         totalPayout: result.totalWin,
         result,
+        jackpotHit: rollJackpot(rng, input.totalBet),
       };
     }
     case 'roulette': {

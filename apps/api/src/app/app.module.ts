@@ -21,6 +21,7 @@ import { HealthController } from '../health/health.controller';
 import { MailModule } from '../mail/mail.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { PlayerModule } from '../responsible/player.module';
 import { REDIS, RedisModule } from '../redis/redis.module';
 import { WalletModule } from '../wallet/wallet.module';
 
@@ -79,6 +80,7 @@ export class AppModule implements NestModule {
         AuthModule,
         WalletModule,
         RealtimeModule,
+        PlayerModule,
         GamesModule,
       ],
       controllers: [HealthController],

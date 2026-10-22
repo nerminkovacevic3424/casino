@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Rng, createFairRng } from '@casino/game-engine';
+import { Rng, createFairRng, rollJackpot } from '@casino/game-engine';
 import type {
   FairnessInfo,
   GameId,
@@ -20,7 +20,9 @@ import { FairnessService, nodeHmac } from '../fairness/fairness.service';
 import { Prisma } from '../generated/prisma/client';
 import type { GameRound } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { JackpotService } from '../jackpot/jackpot.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { ResponsibleService } from '../responsible/responsible.service';
 import { WalletService } from '../wallet/wallet.service';
 import { GameSettingsService } from './game-settings.service';
 
@@ -33,6 +35,8 @@ export interface InstantRoundRequest<R> {
   readonly stake: number;
   /** Pure outcome function driven only by the provably fair RNG. */
   readonly resolve: (rng: Rng) => { payout: number; result: R };
+  /** Slot rounds take part in the community jackpot (an extra provably fair draw). */
+  readonly jackpot?: boolean;
 }
 
 @Injectable()
@@ -45,6 +49,8 @@ export class RoundsService {
     private readonly wallet: WalletService,
     private readonly settings: GameSettingsService,
     private readonly realtime: RealtimeGateway,
+    private readonly responsible: ResponsibleService,
+    private readonly jackpots: JackpotService,
   ) {}
 
   /**
@@ -58,11 +64,16 @@ export class RoundsService {
     if (replay) return replay;
     await this.settings.assertEnabled(req.gameId);
 
+    let claimed = 0;
+    let winnerName: string | null = null;
     try {
       const response = await this.prisma.$transaction(async (tx) => {
         const seed = await this.fairness.reserveNonce(tx, req.userId);
+        // Responsible-play checks run after the per-player lock, so parallel bets cannot both slip under a limit.
+        await this.responsible.assertCanBet(tx, req.userId, req.stake);
         const rng = createFairRng(seed, nodeHmac);
         const { payout, result } = req.resolve(rng);
+        const jackpotHit = req.jackpot === true && rollJackpot(rng, req.stake);
 
         const roundId = randomUUID();
         await tx.gameRound.create({
@@ -95,6 +106,21 @@ export class RoundsService {
             roundId,
           }));
         }
+        if (jackpotHit) {
+          claimed = await this.jackpots.claim();
+          ({ balance } = await this.wallet.applyEntry(tx, {
+            userId: req.userId,
+            type: 'JACKPOT',
+            amount: claimed,
+            roundId,
+            description: 'Community jackpot',
+          }));
+          const user = await tx.user.findUniqueOrThrow({
+            where: { id: req.userId },
+            select: { displayName: true },
+          });
+          winnerName = user.displayName;
+        }
         return {
           roundId,
           gameId: req.gameId,
@@ -108,11 +134,21 @@ export class RoundsService {
             nonce: seed.nonce,
           },
           replayed: false,
+          ...(claimed > 0 ? { jackpot: claimed } : {}),
         } satisfies RoundResponse<R>;
       });
       this.realtime.emitBalance(req.userId, response.balance);
+      if (req.jackpot)
+        await this.jackpots.contribute(req.stake).catch(() => undefined);
+      if (winnerName && claimed > 0)
+        await this.jackpots
+          .announceWin(winnerName, claimed)
+          .catch(() => undefined);
       return response;
     } catch (err) {
+      // The winning round rolled back: put the jackpot back in the pool.
+      if (claimed > 0)
+        await this.jackpots.restore(claimed).catch(() => undefined);
       // A concurrent retry with the same key won the race: return its result.
       if (isUniqueViolation(err)) {
         const winner = await this.findReplay<R>(req);

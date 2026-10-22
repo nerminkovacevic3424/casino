@@ -151,7 +151,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: result.userId },
     });
-    if (!user || user.status !== 'ACTIVE') {
+    if (!user || user.status !== 'ACTIVE' || isSelfExcluded(user)) {
       await this.tokens.revokeSession(result.refreshToken);
       throw new UnauthorizedException('Session revoked');
     }
@@ -354,6 +354,11 @@ export class AuthService {
   private assertActive(user: User): void {
     if (user.status !== 'ACTIVE')
       throw new ForbiddenException('This account is suspended');
+    if (isSelfExcluded(user)) {
+      throw new ForbiddenException(
+        'This account is self-excluded. Contact support if you need help.',
+      );
+    }
   }
 
   private async recordFailedLogin(user: User): Promise<void> {
@@ -387,6 +392,10 @@ export class AuthService {
     return user;
   }
 }
+
+const isSelfExcluded = (user: User): boolean =>
+  user.selfExcludedUntil !== null &&
+  user.selfExcludedUntil.getTime() > Date.now();
 
 export function toUserDto(user: User): UserDto {
   return {

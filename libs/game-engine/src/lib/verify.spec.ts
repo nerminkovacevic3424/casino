@@ -33,6 +33,7 @@ describe('replayRound', () => {
       totalBet: 200,
       totalPayout: direct.totalWin,
       result: direct,
+      jackpotHit: expect.any(Boolean),
     });
   });
 

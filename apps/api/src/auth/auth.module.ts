@@ -31,6 +31,6 @@ import { TotpService } from './totp.service';
     AccessTokenGuard,
     RolesGuard,
   ],
-  exports: [TokenService, AccessTokenGuard, RolesGuard],
+  exports: [TokenService, PasswordService, AccessTokenGuard, RolesGuard],
 })
 export class AuthModule {}
